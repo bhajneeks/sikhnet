@@ -26,3 +26,10 @@ feasible in the time we have.
   "type your own topic" input that sends free text as `category`.
 - Avneet: none required. If ingest sets `category`, it overrides inference.
 - Jaspreet: eval "surprise works for every category" can loop over `/api/categories`.
+
+**Update (v3, same day):** with the real dataset (one record per answer, every
+record has a forum `category`), Surprise me now picks per *thread*, unions the forum
+category with keyword-inferred topics, skips weak seeds (short questions, thin
+answers), weights rich threads, keeps a Claude hook only if `search()` finds the
+same thread again, uses the team's verified `llm.MODEL`, and prefetches the next
+pick per topic. API shape unchanged; `id` is the thread's first answer record.
