@@ -27,13 +27,19 @@ One JSON object per line, UTF-8:
   "question": "What is the significance of Vaisakhi?",
   "answer": "…full answer text as in the dataset…",
   "source": "sikhnet-qa-dataset",
+  "source_type": "primary",
   "source_url": "https://… (optional)",
+  "category": "history",
   "tags": ["history", "gurpurab"],
   "extra": {}
 }
 ```
 
 - `id`, `question`, `answer`, `source` are required; others optional.
+- `source_type` (R3): `"primary"` = the org's own Q&A dataset (weighted most);
+  `"secondary"` = other properties (e.g. SikhiWiki, other org sites). Missing → `"primary"`.
+- `category` (R5): one of `theology | history | music | literature | practice | other`.
+  Missing → `"other"`. Used by "Surprise me". Map dataset columns/tags to it in ingest.
 - `id` is stable across re-ingestion: `"qa_" + sha1(normalized question + source)[:10]`.
 - Unknown dataset columns go in `extra` (never dropped silently).
 
@@ -42,7 +48,14 @@ One JSON object per line, UTF-8:
 ```python
 def search(query: str, k: int = 5) -> list[dict]:
     """Return up to k records from qa.jsonl, best first.
-    Each record is the qa.jsonl object plus "score": float (higher = better)."""
+    Each record is the qa.jsonl object plus "score": float (higher = better).
+    When relevance is close, primary sources rank above secondary (R3)."""
+
+def random_question(category: str | None = None) -> dict | None:
+    """R5: a random record (optionally in one category) for "Surprise me"."""
+
+def categories() -> list[str]:
+    """R5: categories that have at least one record."""
 ```
 
 Backend calls only `search()`. Internals (BM25, embeddings, hybrid) are
@@ -65,17 +78,32 @@ Response:
 {
   "answer": "markdown text, citations inline like [1], [2]",
   "citations": [
-    {"n": 1, "id": "qa_3f9a1c2b7d", "question": "…", "answer_excerpt": "first ~300 chars", "source_url": null}
+    {"n": 1, "id": "qa_3f9a1c2b7d", "question": "…", "answer_excerpt": "first ~300 chars",
+     "source": "sikhnet-qa-dataset", "source_type": "primary", "source_url": null}
   ],
+  "perspectives": [
+    {"label": "Another interpretation", "text": "… [3]", "citation_ns": [3]}
+  ],
+  "follow_ups": ["What is the history of langar?", "…", "…"],
   "coverage": "grounded | partial | not_found",
   "mode": "llm | fallback"
 }
 ```
 
+- `answer` (R1, R4) is the org's position, from primary sources first.
+- `perspectives` (R4): alternative views **only if the retrieved sources contain
+  them**; otherwise `[]`. Secondary-source material (R3) goes here too, under
+  label "From other sources". Never invented.
+- `follow_ups` (R2): exactly 3 short questions the user might ask next, preferring
+  ones our dataset can answer. Always present (may be `[]` only on `not_found`).
+
 - `history` is optional; max ~10 turns are used.
 - `mode: "fallback"` = no API key configured; the answer is the top retrieved
   entry verbatim. The frontend must work in both modes.
 - `GET /api/health` → `{"ok": true, "records": <int>, "llm": <bool>}`.
+- `GET /api/categories` (R5) → `{"categories": ["theology", "history", …]}`.
+- `GET /api/surprise?category=history` (R5) → `{"question": "…", "category": "history", "id": "qa_…"}`.
+  Frontend then sends that question to `/api/ask`.
 - Streaming (`POST /api/ask/stream`, SSE) may be added later — additive only.
 
 ## 4. Eval contract — `evals/` (owner: Jaspreet)
@@ -83,7 +111,8 @@ Response:
 - `evals/questions.jsonl`: `{"question": "...", "expected_ids": ["qa_..."], "should_cover": true}`.
 - `python3 evals/run_evals.py [--base-url http://localhost:8000]` prints
   per-question results and totals: retrieval hit@5, citation rate,
-  correct "not_found" on out-of-scope questions. Appends a summary to
+  correct "not_found" on out-of-scope questions, plus the per-requirement
+  checks listed in `docs/REQUIREMENTS.md`. Appends a summary to
   `evals/results.md`.
 - No prompt/retrieval change merges if it lowers these scores (see
   `grounded-answer` skill).

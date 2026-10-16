@@ -14,6 +14,10 @@ kill "$fetch_pid" 2>/dev/null
 echo "=== sikhnet team context ($(date '+%Y-%m-%d %H:%M')) ==="
 echo "You are: $(git config user.name 2>/dev/null || echo unknown) on branch $(git branch --show-current 2>/dev/null)"
 echo
+echo "JUDGE REQUIREMENTS (docs/REQUIREMENTS.md) — align all work to these:"
+echo "  R1 cited answers · R2 3 follow-ups per answer · R3 multi-source, org answer weighted first"
+echo "  R4 multifaceted views, org answer primary · R5 'Surprise me' + topic dropdown"
+echo
 
 for name in manveer bhajneek avneet jaspreet; do
   branch=$(git for-each-ref --format='%(refname:short)' "refs/remotes/origin/$name/" 2>/dev/null | head -1)

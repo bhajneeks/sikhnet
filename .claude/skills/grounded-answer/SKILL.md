@@ -26,6 +26,11 @@ backend prompt (`backend/prompts.py`) and evals (`evals/`) enforce.
    on behalf of the Panth.
 6. **Gurbani verbatim:** quotes of Gurbani must be copied exactly from an entry,
    in Gurmukhi if the entry has it, never paraphrased inside quote marks.
+7. **Org answer first (R3/R4):** the main answer comes from `source_type:
+   "primary"` entries. Alternative interpretations and secondary-source material
+   go in `perspectives`, only when retrieved entries actually contain them.
+8. **Follow-ups (R2):** always return 3 short follow-up questions, preferring
+   ones similar to other retrieved entries so the dataset can answer them.
 
 ## Procedure when changing answering behavior
 

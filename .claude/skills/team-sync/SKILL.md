@@ -18,15 +18,18 @@ must come from a status file or a git log, never from a guess.
    if the session is long or you are about to start new work). It fetches
    origin and prints every teammate's status file as it exists **on their own
    branch**, plus their unmerged commits.
-2. Read `TEAM.md` (lanes and ownership) and `docs/ARCHITECTURE.md` (the
+2. If the `github` MCP server is connected, also list open PRs on
+   `bhajneeks/sikhnet` and note any awaiting review from the user.
+3. Read `docs/REQUIREMENTS.md` (judge criteria R1-R5), `TEAM.md` (lanes and ownership) and `docs/ARCHITECTURE.md` (the
    contracts between lanes).
-3. Identify who the current user is (`git config user.name`, or ask once).
-4. Tell the user in 3-6 lines:
+4. Identify who the current user is (`git config user.name`, or ask once).
+5. Tell the user in 3-6 lines:
    - what each teammate is doing right now (from their status file),
    - anything that touches the user's lane (a contract change, a blocker
      they're waiting on, a file someone else is editing),
-   - anything stale (a status file not updated in > 3 hours — say so).
-5. Before starting a task, check `docs/brain/status/*.md` "Now" lines and
+   - anything stale (a status file not updated in > 3 hours — say so),
+   - which judge requirements (R1-R5) are still unbuilt.
+6. Before starting a task, check `docs/brain/status/*.md` "Now" lines and
    `TEAM.md` ownership. If the task belongs to another lane, say who owns it and
    ask before touching their files.
 

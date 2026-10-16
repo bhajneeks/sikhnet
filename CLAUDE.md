@@ -4,6 +4,21 @@ We're 4 people building a ChatGPT-style assistant that answers questions about
 Sikhi, grounded in our existing Q&A dataset. Hackathon: ship a working demo
 fast, don't overlap, keep the pieces connected.
 
+## What the judges want — align every change to this
+
+Full detail, owners and "done" criteria: **`docs/REQUIREMENTS.md`**. Before
+proposing or building anything, say which of these it serves:
+
+1. **R1 Cited answers** — pertinent, with "here's where I got this" sources.
+2. **R2 Follow-ups** — 3 suggested next questions under every answer.
+3. **R3 Multi-source, org first** — scalable to their other sites (e.g. SikhiWiki);
+   the org's answer weighted most, other sources underneath.
+4. **R4 Multifaceted** — alternative views shown when sources have them, org's answer clearly primary.
+5. **R5 Surprise me** — topic dropdown (theology, music, literature, history…) → fun rabbit-hole question.
+
+If the user asks for something that doesn't serve R1-R5, say so briefly and
+suggest the highest-impact unfinished requirement instead (they can still overrule).
+
 ## Every session, first
 
 1. The SessionStart hook prints team context (`scripts/team-context.sh`).
