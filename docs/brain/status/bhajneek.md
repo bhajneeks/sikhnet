@@ -3,19 +3,21 @@ updated: 2026-10-16
 branch: bhajneek/features
 
 ## Now
-Not started — pick up the first item under Next.
+R5 Surprise me v2 done on my branch — opening PR into main.
 
 ## Done
-- (nothing yet)
+- R5: /api/surprise v2 — topics theology/history/music/literature/art/practice inferred
+  from text (no category column needed), free-text topics, no repeats, primary first,
+  Claude-written hook grounded in one entry (falls back to dataset question). Decision 004.
+- Merged Manveer's UI v1 (origin/manveer/ui) into my branch to test against it.
 
 ## Next
-- R5: make Surprise me prompts fun (grounded hook per category), no repeats
-- R3: first secondary-source importer (e.g. SikhiWiki) in ingest/sources/ with source_type secondary
-- R3: work with Avneet on primary-first weighting
+- R3: first secondary-source importer (SikhiWiki) in ingest/sources/ with source_type secondary
+- R3: agree with Avneet how secondary records are loaded (secondary.jsonl vs merged)
 - docs/ROADMAP.md: what we'd build next for the org's other properties
 
 ## Blocked on / needs from others
-- nothing
+- Real dataset in data/raw (Avneet) to tune topic keywords on real questions
 
 ## Files I'm touching
 - backend/features/, ingest/sources/, docs/ROADMAP.md
