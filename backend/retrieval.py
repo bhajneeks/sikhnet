@@ -28,8 +28,97 @@ QUOTE_LINE = re.compile(r"^\s*>.*$", re.MULTILINE)
 PRIMARY_MARGIN = 0.15
 
 
+# Query-side vocabulary bridge. The dataset is forum English plus romanised
+# Punjabi ("langar", "dastaar"); users ask in plain English ("community
+# kitchen", "turban"). Only queries are expanded — the index stays a faithful
+# record of what members actually wrote. Each entry adds terms, never replaces,
+# so an exact-term query is unaffected.
+QUERY_EXPANSIONS: dict[str, list[str]] = {
+    "community kitchen": ["langar"],
+    "free kitchen": ["langar"],
+    "free food": ["langar"],
+    "holy book": ["granth", "sggs", "gurbani"],
+    "scripture": ["granth", "gurbani"],
+    "sikh scripture": ["granth", "sggs"],
+    "temple": ["gurdwara", "gurudwara"],
+    "sikh temple": ["gurdwara", "gurudwara"],
+    "place of worship": ["gurdwara"],
+    "turban": ["dastaar", "pagri", "pagh"],
+    "headscarf": ["chunni", "dupatta"],
+    "head covering": ["dastaar", "chunni", "patka"],
+    "uncut hair": ["kesh"],
+    "comb": ["kangha"],
+    "bracelet": ["kara"],
+    "steel bangle": ["kara"],
+    "sword": ["kirpan"],
+    "dagger": ["kirpan"],
+    "five ks": ["kakkar", "kakaar", "panj"],
+    "5 ks": ["kakkar", "kakaar", "panj"],
+    "initiation": ["amrit", "khande", "sanchar"],
+    "baptism": ["amrit", "sanchar"],
+    "baptised": ["amritdhari"],
+    "daily prayers": ["nitnem", "paath", "banis"],
+    "morning prayer": ["nitnem", "japji", "amritvela"],
+    "hymn": ["shabad", "kirtan"],
+    "hymns": ["shabad", "kirtan"],
+    "music": ["kirtan", "raag", "shabad"],
+    "musician": ["ragi", "raagi", "kirtani"],
+    "congregation": ["sangat"],
+    "selfless service": ["seva", "sewa"],
+    "volunteering": ["seva", "sewa"],
+    "code of conduct": ["rehat", "maryada"],
+    "founded": ["started", "began", "origin"],
+    "started": ["founded", "began", "origin"],
+    "founder": ["founded", "started", "first"],
+    "wedding": ["anand", "karaj", "lavan", "laavan"],
+    "funeral": ["antam", "sanskar", "cremation"],
+    "charity": ["daswandh", "daan"],
+    "tithe": ["daswandh"],
+}
+
+# Longest phrases first, so "sikh temple" wins over "temple".
+_EXPANSION_PHRASES = sorted(QUERY_EXPANSIONS, key=lambda s: -len(s))
+
+# Expansion is a bridge for vocabulary the dataset lacks, not a blanket OR.
+# If members already write "turban" (df 76), adding "pagri" (df 1) just drags
+# in how-to-tie threads and buries the question that was asked. So a synonym is
+# only added when the dataset clearly prefers it: the user's own word must be
+# thinly represented, and the alternative meaningfully better represented.
+WELL_REPRESENTED = 60   # user's word is common enough to stand on its own
+BETTER_BY = 2           # alternative must be this many times more common
+
+
 def tokenize(text: str) -> list[str]:
     return [t for t in re.findall(r"\w+", text.lower()) if t not in STOPWORDS]
+
+
+def expand_query(query: str) -> list[str]:
+    """Query terms plus bridged vocabulary, decided against the corpus itself.
+
+    Added terms are appended after the user's own, deduplicated, so they add
+    recall without outweighing what was actually typed.
+    """
+    terms = tokenize(query)
+    *_, df = _index()
+    lowered = " ".join(re.findall(r"\w+", query.lower()))
+
+    added: list[str] = []
+    for phrase in _EXPANSION_PHRASES:
+        if phrase not in lowered:
+            continue
+        words = tokenize(phrase)
+        if not words:
+            continue
+        source_df = min(df[w] for w in words)
+        if source_df >= WELL_REPRESENTED:
+            continue                      # the dataset uses the user's wording
+        added.extend(
+            target for target in QUERY_EXPANSIONS[phrase]
+            if df[target] > source_df * BETTER_BY
+        )
+
+    seen = set(terms)
+    return terms + [x for x in added if not (x in seen or seen.add(x))]
 
 
 def _indexed_text(record: dict) -> list[str]:
@@ -127,7 +216,7 @@ def search(query: str, k: int = 5) -> list[dict]:
     _, records, docs, lengths, avg_len, df = _index()
     n = len(records)
     k1, b = 1.5, 0.75
-    terms = tokenize(query)
+    terms = expand_query(query)
     scored = []
     for i, doc in enumerate(docs):
         score = 0.0
