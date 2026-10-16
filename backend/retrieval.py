@@ -23,6 +23,20 @@ should the to was what when where which who why with you your we our can my me""
 # which would otherwise count the same words several times in one thread.
 QUOTE_LINE = re.compile(r"^\s*>.*$", re.MULTILINE)
 
+# Standard greetings and sign-offs, stripped from the index only.
+# 114 of 853 answers open or close with "Waheguru ji ka Khalsa, Waheguru ji ki
+# Fateh", which pushed "khalsa" to df 200, "waheguru" to 231 and "fateh" to 206
+# — a quarter of the corpus. BM25 then treats the Panth's own name as nearly a
+# stopword, and "What is the Khalsa?" (no other content words) scores noise.
+# Removing the boilerplate leaves the records that genuinely discuss these.
+GREETING = re.compile(
+    r"""(?:wahe\s*guru|waheguru|wah\s*e\s*guru)\s*j[ie]*\s*(?:ka|ki)\s*(?:khalsa|fateh|fathe)
+      | \bw[jg]kk\b | \bw[jg]kf\b
+      | \bsat\s*(?:sri|shri)\s*ak[aā]+l\b
+      | \bgur\s*fateh\b""",
+    re.IGNORECASE | re.VERBOSE,
+)
+
 # A tie-break, not a thumb on the scale: only reorders results already scoring
 # within PRIMARY_MARGIN of each other (contract § 2, R3).
 PRIMARY_MARGIN = 0.15
@@ -127,8 +141,8 @@ def _indexed_text(record: dict) -> list[str]:
     The display `question` is the thread title; the poster's actual wording lives
     in extra.question_body (see ingest), so both are indexed.
     """
-    body = (record.get("extra") or {}).get("question_body") or ""
-    answer = QUOTE_LINE.sub("", record["answer"])
+    body = GREETING.sub(" ", (record.get("extra") or {}).get("question_body") or "")
+    answer = GREETING.sub(" ", QUOTE_LINE.sub("", record["answer"]))
     return tokenize(record["question"]) * 2 + tokenize(body) + tokenize(answer)
 
 
