@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
+import html
 import json
 import re
 import sys
@@ -49,6 +50,11 @@ CATEGORY_MAP = {
 CONTRACT_CATEGORIES = {"theology", "history", "music", "literature", "practice", "other"}
 
 GURMUKHI = re.compile(r"[਀-੿]")
+
+
+def clean(text) -> str:
+    """Forum titles come out of the export HTML-escaped (&quot;, &amp;)."""
+    return html.unescape(str(text or "")).strip()
 
 
 def read_rows(path: Path) -> list[dict]:
@@ -105,8 +111,8 @@ def expand_nested(rows: list[dict], source: str, source_type: str) -> tuple[list
     seen: set[str] = set()
 
     for row in rows:
-        title = str(row.get("title") or "").strip()
-        body = str(row.get("question") or "").strip()
+        title = clean(row.get("title"))
+        body = clean(row.get("question"))
         question = title or body
         if not question:
             skipped["empty_question"] += 1
@@ -119,7 +125,7 @@ def expand_nested(rows: list[dict], source: str, source_type: str) -> tuple[list
         answers = row.get("answers") or []
 
         for position, answer in enumerate(answers, start=1):
-            text = str(answer.get("text") or "").strip()
+            text = clean(answer.get("text"))
             if not text:
                 skipped["empty_answer"] += 1
                 continue
@@ -179,8 +185,8 @@ def expand_flat(rows: list[dict], source: str, source_type: str, args) -> tuple[
     used = {q_col, a_col, url_col, tags_col}
 
     for row in rows:
-        q = str(row.get(q_col) or "").strip()
-        a = str(row.get(a_col) or "").strip()
+        q = clean(row.get(q_col))
+        a = clean(row.get(a_col))
         if not q:
             skipped["empty_question"] += 1
             continue
