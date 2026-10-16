@@ -130,25 +130,74 @@ section.block { display: flex; flex-direction: column; gap: 10px; }
 .mode-note { font: 400 11px/1.5 var(--mono); color: var(--muted); }
 
 /* Composer */
-.composer { position: sticky; bottom: 0; background: linear-gradient(transparent, var(--bg) 28%);
-            padding: 20px 20px 16px; margin: 0; }
-.composer-row, .fineprint { max-width: 760px; margin: 0 auto; }
-.composer-row { display: flex; gap: 8px; align-items: flex-end; background: var(--panel); border: 1px solid var(--control);
-                border-radius: 16px; padding: 6px 6px 6px 4px; transition: border-color .15s; }
-.composer-row:focus-within { border-color: var(--accent-line); }
-textarea { flex: 1; min-width: 0; resize: none; min-height: 44px; max-height: 200px; padding: 10px 12px;
-           border: 0; background: transparent; outline: none; }
+.composer { position: sticky; bottom: 0; background: linear-gradient(transparent, var(--bg) 26%);
+            padding: 20px 20px 14px; margin: 0; }
+.composer-box, .fineprint { max-width: 760px; margin: 0 auto; }
+.composer-box { background: var(--panel); border: 1px solid var(--control); border-radius: 18px;
+                padding: 6px 8px 8px; box-shadow: 0 10px 30px -12px rgba(0, 0, 0, .8);
+                transition: border-color .15s, box-shadow .15s; cursor: text; }
+.composer-box:focus-within { border-color: var(--accent-line); box-shadow: 0 0 0 4px var(--accent-soft), 0 10px 30px -12px rgba(0, 0, 0, .8); }
+textarea { display: block; width: 100%; resize: none; min-height: 44px; max-height: 200px; padding: 10px 8px 4px;
+           border: 0; background: transparent; outline: none; font-size: 16px; line-height: 1.5; }
 textarea::placeholder { color: var(--muted); }
-.send { width: 40px; height: 40px; flex: none; border-radius: 10px; border: 0; background: var(--accent); color: var(--on-accent);
-        display: flex; align-items: center; justify-content: center; transition: background .15s; }
+textarea:focus-visible { outline: none; }  /* the composer box shows focus */
+.composer-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-left: 8px; }
+.hint { font: 400 11px/1.5 var(--mono); color: var(--muted); }
+kbd { font: 500 10px/1 var(--mono); padding: 2px 5px; border: 1px solid var(--control); border-bottom-width: 2px;
+      border-radius: 4px; color: var(--body); background: var(--raised); }
+.send { width: 36px; height: 36px; flex: none; margin-left: auto; border-radius: 10px; border: 0; background: var(--accent);
+        color: var(--on-accent); display: flex; align-items: center; justify-content: center; transition: background .15s, opacity .15s; }
 .send:hover { background: var(--accent-hover); }
-.send:disabled { opacity: .55; cursor: progress; }
+.send:disabled { background: var(--raised); color: var(--muted); cursor: default; }
+.send.stop { background: var(--text); color: var(--bg); }
+.send[hidden] { display: none; }
 .fineprint { margin-top: 8px; font: 400 11px/1.5 var(--mono); color: var(--muted); text-align: center; }
+
+/* Scroll-to-latest */
+.to-bottom { position: fixed; left: 50%; bottom: 128px; transform: translateX(-50%); z-index: 3;
+             width: 38px; height: 38px; border-radius: 999px; border: 1px solid var(--control);
+             background: var(--raised); color: var(--text); display: flex; align-items: center; justify-content: center;
+             box-shadow: 0 6px 20px rgba(0, 0, 0, .6); }
+.to-bottom:hover { border-color: var(--accent-line); color: var(--accent); }
+.to-bottom[hidden] { display: none; }
+
+/* Top bar actions */
+.top-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.btn-ghost { height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--control); background: transparent;
+             font-size: 14px; display: inline-flex; align-items: center; gap: 6px; color: var(--body); }
+.btn-ghost:hover { border-color: #3d3d43; color: var(--text); }
+body:not(.has-chat) .btn-ghost { display: none; }
+
+/* Answer actions */
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: -10px; }
+.action { height: 32px; padding: 0 10px; border-radius: 8px; border: 0; background: transparent; color: var(--muted);
+          font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+.action:hover { background: var(--raised); color: var(--text); }
+.actions .mode-note { margin-left: auto; }
+@media (hover: hover) {
+  .turn .actions .action { opacity: .55; transition: opacity .15s, background .15s, color .15s; }
+  .turn:hover .actions .action, .actions .action:focus-visible { opacity: 1; }
+}
+
+/* Motion */
+.turn, .user-msg, .notice { animation: rise .28s ease-out both; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+.elapsed { margin-left: auto; color: var(--muted); }
+.spin { display: inline-flex; animation: bob 1.4s ease-in-out infinite; }
+@keyframes bob { 50% { transform: translateY(-2px) rotate(-8deg); } }
+@media (prefers-reduced-motion: reduce) { .turn, .user-msg, .notice, .spin { animation: none; } }
+
+/* Surprise fields */
+.surprise-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field input { height: 46px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--control);
+               background: var(--raised); font-size: 15px; min-width: 0; }
+.field input::placeholder { color: var(--muted); }
+.field input:focus, select:focus { outline: none; border-color: var(--accent-line); }
 
 @media (max-width: 640px) {
   .topbar { padding: 10px 16px; }
   .pill, .surprise-bar label { display: none; }
-  .surprise-bar { width: 100%; }
   .surprise-bar select { flex: 1; min-width: 0; }
   main { padding: 24px 16px 16px; }
   .home h1 { font-size: 34px; }
@@ -156,5 +205,10 @@ textarea::placeholder { color: var(--muted); }
   .user-msg { max-width: 88%; }
   .answer { font-size: 16px; }
   .composer { padding: 16px 12px 12px; }
-  .fineprint { display: none; }
+  .fineprint, .hint { display: none; }
+  .surprise-fields { grid-template-columns: minmax(0, 1fr); }
+  .btn-ghost span { display: none; }
+  .top-actions, .top-actions .surprise-bar { width: 100%; flex-wrap: nowrap; }
+  .top-actions .surprise-bar { flex: 1; min-width: 0; }
+  .to-bottom { bottom: 96px; }
 }
