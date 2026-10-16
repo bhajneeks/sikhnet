@@ -13,7 +13,7 @@ citations to the original entries.
 - Frontend: static HTML/CSS/JS in `frontend/`, served by the backend at `/`
   (no build step). Manveer may switch to React/Next if wanted — the API contract
   stays the same.
-- LLM: Claude via the official `anthropic` SDK, model `claude-opus-5-5`.
+- LLM: Claude via the official `anthropic` SDK, model `claude-opus-5`.
 - Retrieval v1: in-memory BM25-style keyword search (no extra services).
   v2 (optional): embeddings.
 
@@ -38,8 +38,9 @@ One JSON object per line, UTF-8:
 - `id`, `question`, `answer`, `source` are required; others optional.
 - `source_type` (R3): `"primary"` = the org's own Q&A dataset (weighted most);
   `"secondary"` = other properties (e.g. SikhiWiki, other org sites). Missing → `"primary"`.
-- `category` (R5): one of `theology | history | music | literature | practice | other`.
-  Missing → `"other"`. Used by "Surprise me". Map dataset columns/tags to it in ingest.
+- `category` (R5): one of `theology | history | music | literature | art | practice | other`.
+  Optional: if missing, `backend/features/surprise.py` infers topics from keywords
+  in the question, tags and answer (a record can belong to several).
 - `id` is stable across re-ingestion: `"qa_" + sha1(normalized question + source)[:10]`.
 - Unknown dataset columns go in `extra` (never dropped silently).
 
@@ -101,8 +102,12 @@ Response:
 - `mode: "fallback"` = no API key configured; the answer is the top retrieved
   entry verbatim. The frontend must work in both modes.
 - `GET /api/health` → `{"ok": true, "records": <int>, "llm": <bool>}`.
-- `GET /api/categories` (R5) → `{"categories": ["theology", "history", …]}`.
-- `GET /api/surprise?category=history` (R5) → `{"question": "…", "category": "history", "id": "qa_…"}`.
+- `GET /api/categories` (R5) → `{"categories": ["theology", "history", …], "labels": {"art": "Art & Architecture", …}}`.
+  Only topics with at least one record are listed.
+- `GET /api/surprise?category=history` (R5) → `{"question": "…", "category": "history", "id": "qa_…", "seed_question": "…"}`.
+  `category` is a topic key/label **or any free-text subject** (e.g. `kirtan`), or omitted for any topic.
+  `question` is a rabbit-hole hook grounded in entry `id` (= `seed_question` without an API key);
+  no repeats until a topic's pool is exhausted; primary entries preferred; `question: null` if nothing matches.
   Frontend then sends that question to `/api/ask`.
 - Streaming (`POST /api/ask/stream`, SSE) may be added later — additive only.
 

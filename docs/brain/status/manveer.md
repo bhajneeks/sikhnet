@@ -1,21 +1,25 @@
 # Manveer — UI / UX
-updated: 2026-10-16
+updated: 2026-10-16 16:00
 branch: manveer/ui
 
 ## Now
-Not started — pick up the first item under Next.
+Chat UI v2 (beige + light blue) on manveer/ui; PR into main not opened yet.
+Design: https://claude.ai/artifact/RDNoyCDZTpw4kvmi4fVPBg (private until shared)
 
 ## Done
-- (nothing yet)
+- Chat box v2: composer with Enter/Shift+Enter hint, rotating example questions, Stop (and Esc), "/" to focus; Copy + Ask again on each answer; scroll-to-latest button (auto-follow only when at bottom); staged loading text with timer; New chat; topic labels + free-text subject for Surprise me (decision 004)
+- UI polish from "7 Rules for Gorgeous UI": light from above (raised buttons/cards, inset inputs), neutrals + one blue hue, doubled whitespace
+- Light theme: beige + light blue, Newsreader serif for headings and answers (replaced black + orange)
+- frontend/ v1: source cards + clickable [n] chips (R1), Keep exploring follow-ups (R2), Other perspectives / From other sources (R4/R3), topic dropdown + Surprise me (R5), loading / not_found / error states, mobile layout, dark mode. Follow-ups and perspectives stay hidden until /api/ask sends them.
+- Claude Design mockup: desktop answer view (source cards R1, Other perspectives + "From other sources" R4/R3, 3 follow-up buttons R2, topic dropdown + Surprise me R5), mobile home, mobile loading + not_found
 
 ## Next
-- Mock up the chat screen in Claude Design (answer, citations, follow-ups, perspectives, Surprise me)
-- Build it in frontend/: follow-up chips (R2), source cards (R1), Other perspectives section (R4)
-- Topic dropdown + Surprise me button calling /api/categories and /api/surprise (R5)
-- Mobile-friendly, loading and not_found states
+- Re-test against Avneet's follow_ups / perspectives once they land
+- Polish with real dataset answers (long answers, many citations)
+- Accessibility pass (design:accessibility-review)
 
 ## Blocked on / needs from others
-- nothing
+- @Avneet: /api/ask citations should include source + source_type (contract § 3); UI labels primary vs other sources from them
 
 ## Files I'm touching
 - frontend/

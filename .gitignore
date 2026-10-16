@@ -3,6 +3,13 @@ __pycache__/
 *.pyc
 .env
 .DS_Store
+# Dataset files never go in git: this repo is public and the SikhNet
+# hackathon terms forbid committing the data or anything derived from it.
+# Source of truth is the team Drive folder (see data/raw/README.md).
 data/raw/*
 !data/raw/README.md
+data/processed/
+*.jsonl
+!data/sample/qa_sample.jsonl
+!evals/questions.jsonl
 .claude/settings.local.json
