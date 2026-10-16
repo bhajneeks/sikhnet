@@ -14,6 +14,10 @@ from backend.prompts import ANSWER_SCHEMA, SYSTEM_PROMPT, build_user_message
 
 MODEL = os.environ.get("SIKHNET_MODEL", "claude-opus-5")
 MAX_TOKENS = 16000
+# Citation discipline, judging whether entries genuinely disagree, and calling
+# coverage honestly are the whole job here, so this is not low-effort work.
+# Dial down with SIKHNET_EFFORT=medium if demo latency becomes the problem.
+EFFORT = os.environ.get("SIKHNET_EFFORT", "high")
 _client = None
 
 REFUSAL_TEXT = "I'm not able to answer that one. Please try rephrasing your question."
@@ -77,7 +81,7 @@ def answer(question: str, hits: list[dict], history: list[dict] | None = None) -
         system=SYSTEM_PROMPT,
         cache_control={"type": "ephemeral"},
         output_config={
-            "effort": "low",
+            "effort": EFFORT,
             "format": {"type": "json_schema", "schema": ANSWER_SCHEMA},
         },
         betas=["server-side-fallback-2026-07-01"],
