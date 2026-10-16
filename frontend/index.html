@@ -4,28 +4,64 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SikhNet Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header>
-    <h1>SikhNet Assistant</h1>
-    <span id="status" class="status"></span>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h10M4 18h7"/></svg>
+      </span>
+      <span class="name">SikhNet Assistant</span>
+      <span class="pill" id="status">Answers from SikhNet's Q&amp;A</span>
+    </div>
+    <form class="surprise-bar" data-surprise>
+      <label for="topic">Explore a topic</label>
+      <select id="topic" data-topics></select>
+      <button type="submit" class="btn-accent">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>
+        Surprise me
+      </button>
+    </form>
   </header>
 
-  <main id="chat">
-    <div class="empty" id="empty">
-      <p>Ask a question about Sikhi. Answers come from our curated Q&amp;A collection, with sources.</p>
-      <div class="starters">
-        <button>What is langar?</button>
-        <button>What are the five Ks?</button>
-        <button>Who founded Sikhi?</button>
+  <main id="chat" aria-live="polite">
+    <section class="home" id="home">
+      <h1>Ask about Sikhi</h1>
+      <p class="lede">Answers come from SikhNet's Q&amp;A collection, and every one shows its sources.</p>
+
+      <form class="surprise-card" data-surprise>
+        <h2>Not sure where to start?</h2>
+        <p>Pick a topic and we'll find a question worth falling down a rabbit hole for.</p>
+        <label for="topic-home">Topic</label>
+        <select id="topic-home" data-topics></select>
+        <button type="submit" class="btn-accent">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>
+          Surprise me
+        </button>
+      </form>
+
+      <h2 class="eyebrow">Or try one of these</h2>
+      <div class="option-list">
+        <button type="button" class="option" data-ask>What is langar?</button>
+        <button type="button" class="option" data-ask>What are the five Ks?</button>
+        <button type="button" class="option" data-ask>Who founded Sikhi?</button>
       </div>
-    </div>
+    </section>
   </main>
 
-  <form id="form">
-    <textarea id="input" rows="1" placeholder="Ask a question…" required></textarea>
-    <button type="submit">Send</button>
+  <form id="form" class="composer">
+    <div class="composer-row">
+      <label for="input" class="sr-only">Your question</label>
+      <textarea id="input" rows="1" placeholder="Ask a question about Sikhi…" required></textarea>
+      <button type="submit" class="send" aria-label="Send">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+      </button>
+    </div>
+    <p class="fineprint">Answers only use SikhNet's sources and always show where they came from.</p>
   </form>
 
   <script src="app.js"></script>

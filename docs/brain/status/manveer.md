@@ -1,21 +1,22 @@
 # Manveer — UI / UX
-updated: 2026-10-16 12:50
+updated: 2026-10-16 13:30
 branch: manveer/ui
 
 ## Now
-Chat screen mocked up in Claude Design — reviewing it, then building it in frontend/.
+UI v1 built in frontend/ from the Claude Design mockup; PR open into main.
 Design: https://claude.ai/artifact/RDNoyCDZTpw4kvmi4fVPBg (private until shared)
 
 ## Done
+- frontend/ v1: source cards + clickable [n] chips (R1), Keep exploring follow-ups (R2), Other perspectives / From other sources (R4/R3), topic dropdown + Surprise me (R5), loading / not_found / error states, mobile layout, dark mode. Follow-ups and perspectives stay hidden until /api/ask sends them.
 - Claude Design mockup: desktop answer view (source cards R1, Other perspectives + "From other sources" R4/R3, 3 follow-up buttons R2, topic dropdown + Surprise me R5), mobile home, mobile loading + not_found
 
 ## Next
-- Build it in frontend/: source cards (R1), follow-up buttons (R2), Other perspectives section (R4)
-- Topic dropdown + Surprise me calling /api/categories and /api/surprise (R5)
-- Mobile-friendly, loading and not_found states; works in fallback mode too
+- Re-test against Avneet's follow_ups / perspectives once they land
+- Polish with real dataset answers (long answers, many citations)
+- Accessibility pass (design:accessibility-review)
 
 ## Blocked on / needs from others
-- nothing
+- @Avneet: /api/ask citations should include source + source_type (contract § 3); UI labels primary vs other sources from them
 
 ## Files I'm touching
 - frontend/
