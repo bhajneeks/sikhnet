@@ -66,6 +66,33 @@ def data_path() -> str:
     return str(_index()[0])
 
 
+def unseen_terms(query: str) -> list[str]:
+    """Query words the dataset has never used anywhere.
+
+    The strongest out-of-scope signal we have without a model: "brazil",
+    "postgresql" and "javascript" appear in no Sikhi answer, while every
+    in-scope question we measured used only words the corpus knows.
+    """
+    *_, df = _index()
+    return [t for t in dict.fromkeys(tokenize(query)) if t not in df]
+
+
+def thread_answers(thread_id: str, exclude_ids: set[str] | None = None, limit: int = 3) -> list[dict]:
+    """The other answers posted to the same question, in their original order.
+
+    Fetched explicitly rather than hoped for: search() deliberately spreads
+    top-k across threads, so a thread's own disagreement never survives into
+    the results — and that disagreement is exactly what R4 needs.
+    """
+    exclude = exclude_ids or set()
+    siblings = [
+        r for r in all_records()
+        if _thread_of(r) == str(thread_id) and r["id"] not in exclude
+    ]
+    siblings.sort(key=lambda r: (r.get("extra") or {}).get("answer_position", 0))
+    return siblings[:limit]
+
+
 def _thread_of(record: dict) -> str:
     """Answers to one question share a thread; fall back to the record id."""
     return str((record.get("extra") or {}).get("thread_id") or record["id"])

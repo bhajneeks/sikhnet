@@ -1,0 +1,2 @@
+- 2026-10-16 13:26 · retrieval hit@5 0/3 (0%) · cited 3/3 (100%) · out-of-scope→not_found 0/1 (0%) · mode=fallback · baseline: real data, before answer-layer work
+- 2026-10-16 13:30 · retrieval hit@5 0/3 (0%) · cited 3/3 (100%) · out-of-scope→not_found 0/1 (0%) · mode=fallback · answer layer: follow_ups + perspectives + vocabulary coverage gate

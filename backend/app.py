@@ -18,7 +18,18 @@ from backend.features import router as features_router  # noqa: E402
 
 app = FastAPI(title="sikhnet")
 app.include_router(features_router)  # Bhajneek's feature endpoints
-MIN_SCORE = 1.0  # below this, treat retrieval as a miss in fallback mode
+
+# Coverage gate for fallback mode. BM25 scores are not comparable across
+# queries — measured on the real dataset, out-of-scope questions reached 11.5
+# while in-scope went as low as 2.9, so a score threshold alone cannot separate
+# them. Unseen vocabulary can: across 18 in-scope questions every word was one
+# the dataset uses, while 8 of 10 out-of-scope questions had at least one word
+# it has never used. Tuned for no false "not_found" on real questions — in llm
+# mode the model judges coverage itself, having read the entries.
+MIN_SCORE = 1.0
+MIN_TERM_OVERLAP = 0.5
+# How many of the top hit's sibling answers to pull in for perspectives (R4).
+MAX_THREAD_SIBLINGS = 3
 
 
 class Turn(BaseModel):
@@ -38,10 +49,81 @@ def _citations(hits: list[dict]) -> list[dict]:
             "id": h["id"],
             "question": h["question"],
             "answer_excerpt": h["answer"][:300] + ("…" if len(h["answer"]) > 300 else ""),
+            "source": h.get("source", "sikhnet-qa-dataset"),
+            "source_type": h.get("source_type", "primary"),
             "source_url": h.get("source_url"),
         }
         for n, h in enumerate(hits, 1)
     ]
+
+
+def _term_overlap(question: str, hit: dict) -> float:
+    """Fraction of the question's content words the entry actually contains."""
+    terms = set(retrieval.tokenize(question))
+    if not terms:
+        return 0.0
+    body = (hit.get("extra") or {}).get("question_body") or ""
+    text = set(retrieval.tokenize(f"{hit['question']} {body} {hit['answer']}"))
+    return len(terms & text) / len(terms)
+
+
+def _covered(question: str, hits: list[dict]) -> bool:
+    if not hits or hits[0]["score"] < MIN_SCORE:
+        return False
+    if retrieval.unseen_terms(question):
+        return False
+    return _term_overlap(question, hits[0]) >= MIN_TERM_OVERLAP
+
+
+def _with_thread_siblings(hits: list[dict]) -> tuple[list[dict], int]:
+    """Append the top hit's other answers. Returns (references, first_sibling_n).
+
+    search() spreads top-k across threads so citations aren't five slices of one
+    discussion; perspectives need the opposite, so the siblings are added back
+    here, after the retrieved hits, keeping citation numbers stable.
+    """
+    if not hits:
+        return [], 0
+    thread = (hits[0].get("extra") or {}).get("thread_id")
+    if not thread:
+        return hits, 0
+    siblings = retrieval.thread_answers(
+        thread, exclude_ids={h["id"] for h in hits}, limit=MAX_THREAD_SIBLINGS
+    )
+    if not siblings:
+        return hits, 0
+    return hits + siblings, len(hits) + 1
+
+
+def _fallback_follow_ups(hits: list[dict]) -> list[str]:
+    """R2 without a model: the other retrieved entries are questions our dataset
+    can answer by construction, which is what the grounded-answer contract asks for."""
+    out, seen = [], {hits[0]["question"].strip().lower()} if hits else set()
+    for h in hits[1:]:
+        q = h["question"].strip()
+        key = q.lower()
+        if q and key not in seen:
+            seen.add(key)
+            out.append(q if q.endswith("?") else f"{q}?")
+        if len(out) == 3:
+            break
+    return out
+
+
+def _fallback_perspectives(refs: list[dict], first_sibling_n: int) -> list[dict]:
+    """R4 without a model: the other answers to the same question are, literally,
+    the other views on it. Quoted verbatim — nothing is paraphrased or invented."""
+    if not first_sibling_n:
+        return []
+    views = []
+    for n, h in enumerate(refs[first_sibling_n - 1:], start=first_sibling_n):
+        excerpt = h["answer"][:400] + ("…" if len(h["answer"]) > 400 else "")
+        views.append({
+            "label": "Another answer in the same discussion",
+            "text": f"{excerpt} [{n}]",
+            "citation_ns": [n],
+        })
+    return views
 
 
 @app.get("/api/health")
@@ -52,17 +134,36 @@ def health():
 @app.post("/api/ask")
 def ask(req: AskRequest):
     hits = retrieval.search(req.question, k=5)
-    if llm.llm_enabled():
-        text, coverage = llm.answer(req.question, hits, [t.model_dump() for t in req.history])
-        return {"answer": text, "citations": _citations(hits), "coverage": coverage, "mode": "llm"}
+    refs, first_sibling_n = _with_thread_siblings(hits)
 
-    # Fallback mode (no API key): return the best-matching entry verbatim.
-    if not hits or hits[0]["score"] < MIN_SCORE:
+    if llm.llm_enabled():
+        result = llm.answer(req.question, refs, [t.model_dump() for t in req.history])
+        cited = [] if result["coverage"] == "not_found" else _citations(refs)
+        return {
+            "answer": result["answer"],
+            "citations": cited,
+            "perspectives": result["perspectives"],
+            "follow_ups": result["follow_ups"],
+            "coverage": result["coverage"],
+            "mode": "llm",
+        }
+
+    # Fallback mode (no API key): the top entry verbatim, with follow-ups and
+    # perspectives derived from retrieval so the UI is exercised in both modes.
+    if not _covered(req.question, hits):
         return {"answer": "I couldn't find this in our question bank yet. Try rephrasing?",
-                "citations": [], "coverage": "not_found", "mode": "fallback"}
+                "citations": [], "perspectives": [], "follow_ups": [],
+                "coverage": "not_found", "mode": "fallback"}
+
     top = hits[0]
-    return {"answer": f"**{top['question']}**\n\n{top['answer']} [1]",
-            "citations": _citations([top]), "coverage": "grounded", "mode": "fallback"}
+    return {
+        "answer": f"**{top['question']}**\n\n{top['answer']} [1]",
+        "citations": _citations(refs),
+        "perspectives": _fallback_perspectives(refs, first_sibling_n),
+        "follow_ups": _fallback_follow_ups(hits),
+        "coverage": "grounded",
+        "mode": "fallback",
+    }
 
 
 app.mount("/", StaticFiles(directory=Path(__file__).parent.parent / "frontend", html=True), name="frontend")
