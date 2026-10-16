@@ -161,8 +161,10 @@ def _resolve(topic: Optional[str]) -> Optional[str]:
 
 def categories() -> list[str]:
     counts: dict[str, int] = {}
-    for t in _all_threads().values():
-        if t["good"]:
+    threads = list(_all_threads().values())
+    any_good = any(t["good"] for t in threads)  # tiny datasets (the sample) may have none
+    for t in threads:
+        if t["good"] or not any_good:
             for c in t["topics"]:
                 counts[c] = counts.get(c, 0) + 1
     return [k for k in TOPICS if counts.get(k)] + sorted(c for c in counts if c not in TOPICS)
