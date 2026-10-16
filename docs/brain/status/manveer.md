@@ -3,7 +3,7 @@ updated: 2026-10-16 15:10
 branch: manveer/ui
 
 ## Now
-UI v1 built in frontend/ from the Claude Design mockup; PR open into main.
+Chat UI v2 (black + orange) on manveer/ui; PR into main not opened yet.
 Design: https://claude.ai/artifact/RDNoyCDZTpw4kvmi4fVPBg (private until shared)
 
 ## Done
