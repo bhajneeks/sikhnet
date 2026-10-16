@@ -15,7 +15,7 @@ Design: https://claude.ai/artifact/RDNoyCDZTpw4kvmi4fVPBg (private until shared)
 - Mobile-friendly, loading and not_found states; works in fallback mode too
 
 ## Blocked on / needs from others
-- @Jaspreet: should "Surprise me" ask the question right away, or put it in the input box first?
+- nothing
 
 ## Files I'm touching
 - frontend/
