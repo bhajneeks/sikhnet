@@ -3,8 +3,8 @@ updated: 2026-10-16
 branch: avneet/rag
 
 ## Now
-Nothing in flight. Next most useful thing is running llm mode for real
-(needs ANTHROPIC_API_KEY) — everything below was verified in fallback mode only.
+Nothing in flight. **llm mode is live and verified** (key in `.env`, gitignored).
+PR #2 open against main; Bhajneek's #1 carries Manveer's UI v1.
 
 ## Done
 - **Real dataset ingested**: 300 questions / 853 answers → data/processed/qa.jsonl,
@@ -31,12 +31,24 @@ Nothing in flight. Next most useful thing is running llm mode for real
   `git add -A` from the public repo. Hackathon terms forbid that.
 
 ## Next
-- Add ANTHROPIC_API_KEY to .env and exercise llm mode end to end. Untested:
-  the structured-output schema, perspectives quality, follow-up quality.
-- Retrieval: synonyms (started/founded, community kitchen/langar), romanised
-  Punjabi (dastaar/turban, nitnem), legacy ASCII-Gurmukhi posts (83 records
-  tagged `gurmukhi` are currently unsearchable by their Gurmukhi text).
-- Consider embeddings if keyword recall stays the limiting factor.
+- `evals/questions.jsonl` is the blocker on R1 numbers now, not retrieval (see below).
+- More retrieval: legacy ASCII-Gurmukhi posts (83 records tagged `gurmukhi`)
+  are unsearchable by their Gurmukhi text. Embeddings if recall stays limiting.
+
+
+## llm mode — measured, not assumed
+- `claude-opus-5`, effort `high`, structured outputs. ~14s per answer; drop
+  `SIKHNET_EFFORT` to `medium` if that's too slow for the demo.
+- cited 2/3 · off-topic→not_found 1/1 · R2 3 follow-ups on every answer · R5 5/5.
+- **R1 is honest**: asked why Sikhs wear a turban, it returned `partial` on its
+  own, saying the entries touch on it but none explains it fully. Cited 4
+  separate members, suggested asking a Granthi.
+- **R4 is real**: on meat-eating, beard-trimming and marrying a non-Sikh it
+  produced 2-3 separately-labelled perspectives each, citing genuine
+  disagreement between members. Nothing invented.
+- **Query expansion** bridges plain English to the dataset's vocabulary
+  (community kitchen→langar, sword→kirpan), decided against corpus frequencies
+  so it doesn't fire when members already use the user's word.
 
 ## Known gaps (not blockers, but don't demo into them)
 - **Fallback mode still answers generic-English out-of-scope questions.**
@@ -50,12 +62,16 @@ Nothing in flight. Next most useful thing is running llm mode for real
   as a genuine differing view and returns `[]` when entries agree.
 
 ## Blocked on / needs from others
-- **Jaspreet — `evals/questions.jsonl` is stale and silently scoring 0.**
-  `expected_ids` are the placeholder sample ids (`qa_sample0001`), which cannot
-  match real dataset ids, so retrieval hit@5 reads 0/3 no matter what retrieval
-  does. Needs real ids, and ideally more than one out-of-scope case. Current:
-  `hit@5 0/3 · cited 3/3 · out-of-scope→not_found 0/1` (the one failure is the
-  laptop case above).
+- **Jaspreet — `evals/questions.jsonl` needs rewriting against the real data.**
+  Two problems. (1) `expected_ids` are placeholder sample ids (`qa_sample0001`)
+  that cannot match real dataset ids, so hit@5 reads 0/3 regardless of
+  retrieval quality. (2) More fundamental: the questions are encyclopedia
+  basics — "Who started the Sikh faith?", "What is the community kitchen
+  called?" — and **this dataset is a forum of specific, often advanced
+  questions that does not contain basic definitions.** There is no thread
+  saying Guru Nanak founded Sikhi. llm mode correctly answers `not_found`;
+  fallback mode only looked better because it cites the top hit whatever it is.
+  Acceptance questions should be things the forum actually discusses.
 - **Jaspreet — framing.** The datasheet is explicit that these are unvetted
   community opinions that often disagree, and there is no single "org answer"
   in this dataset. That affects how R3/R4 primacy should read in the UI. I've
