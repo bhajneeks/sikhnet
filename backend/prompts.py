@@ -1,4 +1,4 @@
-"""Prompts for the answering model. Owner: backend lane. Contract: grounded-answer skill."""
+"""Prompts for the answering model. Owner: Avneet, RAG lane. Contract: grounded-answer skill."""
 
 SYSTEM_PROMPT = """You are SikhNet Assistant, a respectful, humble guide that answers questions about Sikhi.
 

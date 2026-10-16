@@ -1,4 +1,4 @@
-// Chat UI. Owner: frontend lane. Talks to POST /api/ask (docs/ARCHITECTURE.md § 3).
+// Chat UI. Owner: Manveer, UI lane. Talks to POST /api/ask (docs/ARCHITECTURE.md § 3).
 const chat = document.getElementById("chat");
 const form = document.getElementById("form");
 const input = document.getElementById("input");

@@ -64,7 +64,7 @@ One line: what I'm doing right now.
 - bullets
 
 ## Blocked on / needs from others
-- "@Avneet: need final /api/ask response shape" (or "nothing")
+- "@Avneet: need final /api/ask response shape" · "@Jaspreet: is X in scope?" (or "nothing")
 
 ## Files I'm touching
 - backend/app.py, backend/llm.py

@@ -4,7 +4,7 @@ title: Initial stack, lanes, and branch-per-person workflow
 date: 2026-10-16
 decided_by: Manveer (proposal — confirm with team in first 15 min)
 affects: [data, backend, frontend, evals]
-status: active
+status: lanes superseded-by-003 (stack still active)
 source: initial repo setup
 ---
 

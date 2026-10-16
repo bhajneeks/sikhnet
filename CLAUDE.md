@@ -19,6 +19,26 @@ proposing or building anything, say which of these it serves:
 If the user asks for something that doesn't serve R1-R5, say so briefly and
 suggest the highest-impact unfinished requirement instead (they can still overrule).
 
+## Roles (full table: `TEAM.md`)
+
+- **Jaspreet — Product & PM.** Knows the client's expectations best. Owns
+  `docs/REQUIREMENTS.md`, priorities, scope and acceptance.
+- **Avneet — RAG engine.** Ingest, retrieval, prompts, Claude call, `/api/ask`.
+- **Bhajneek — Future features.** Other properties / multi-source (R3),
+  Surprise me (R5), `backend/features/`, roadmap.
+- **Manveer — UI/UX.** Everything in `frontend/`.
+
+**Routing:** questions about client/judge expectations, scope, priority, user
+experience behavior, or answer tone go to **Jaspreet**. Don't guess the answer —
+draft a short message the user can send him, then record his reply with
+`capture-decision`. Other questions go to the owner listed in `TEAM.md`.
+
+**UI work uses Claude Design.** In Manveer's UI lane, Claude may (and should)
+use Claude Design — the Artifact tool's Design type (`action: "quickstart"`,
+`intent: "design"`) and the `design:*` skills (design-critique, ux-copy,
+accessibility-review, design-handoff) — to mock up screens for R1-R5 before
+coding them in `frontend/`. Share the design link with the team in the status file.
+
 ## Every session, first
 
 1. The SessionStart hook prints team context (`scripts/team-context.sh`).

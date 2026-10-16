@@ -1,4 +1,4 @@
-"""FastAPI app: /api/ask + serves the frontend. Owner: backend lane.
+"""FastAPI app: /api/ask + serves the frontend. Owner: Avneet, RAG lane.
 
 Run: uvicorn backend.app:app --reload --port 8000
 Contract: docs/ARCHITECTURE.md § 3.
@@ -14,8 +14,10 @@ from fastapi.staticfiles import StaticFiles  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 
 from backend import llm, retrieval  # noqa: E402
+from backend.features import router as features_router  # noqa: E402
 
 app = FastAPI(title="sikhnet")
+app.include_router(features_router)  # Bhajneek's feature endpoints
 MIN_SCORE = 1.0  # below this, treat retrieval as a miss in fallback mode
 
 

@@ -1,4 +1,4 @@
-"""Retrieval over data/processed/qa.jsonl. Owner: data lane (see TEAM.md).
+"""Retrieval over data/processed/qa.jsonl. Owner: Avneet, RAG lane (see TEAM.md).
 
 Contract (docs/ARCHITECTURE.md § 2): search(query, k) -> list of qa records + "score".
 v1 is a small in-memory BM25 — swap internals freely, keep the signature.
@@ -34,6 +34,10 @@ def _index():
     avg_len = sum(lengths) / max(len(lengths), 1)
     df = Counter(term for d in docs for term in d)
     return path, records, docs, lengths, avg_len, df
+
+
+def all_records() -> list[dict]:
+    return _index()[1]
 
 
 def records_count() -> int:

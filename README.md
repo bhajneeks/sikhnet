@@ -3,7 +3,9 @@
 A ChatGPT-style assistant that answers questions about Sikhi, grounded in our
 curated Q&A dataset, with citations back to the original answers.
 
-Team: Manveer · Bhajneek · Avneet · Jaspreet — see [TEAM.md](TEAM.md).
+Team: Jaspreet (Product & PM) · Avneet (RAG) · Bhajneek (future features) · Manveer (UI) — see [TEAM.md](TEAM.md).
+
+**New teammate? Start here:** [docs/ONBOARDING_PROMPT.md](docs/ONBOARDING_PROMPT.md)
 
 ## Quick start
 
@@ -22,7 +24,7 @@ Load the real dataset (from the team Drive folder) into `data/raw/`, then:
 python3 ingest/ingest.py data/raw/<file.csv|xlsx|json>
 ```
 
-Then check out your own branch: `git checkout <yourname>/<lane>` (see TEAM.md).
+Then check out your own branch: `git checkout <yourname>/<role>` (see TEAM.md).
 
 ## Working with Claude Code
 
@@ -48,10 +50,10 @@ Without it, `scripts/team-context.sh` still tracks branches via plain `git fetch
 ## Layout
 
 ```
-ingest/        raw export → data/processed/qa.jsonl         (Bhajneek)
-backend/       retrieval.py (Bhajneek) · app.py, llm.py, prompts.py (Manveer)
-frontend/      chat UI, served at /                          (Avneet)
-evals/         eval questions + runner                       (Jaspreet)
+ingest/        raw export → data/processed/qa.jsonl         (Avneet)  · ingest/sources/ (Bhajneek)
+backend/       retrieval, prompts, llm, app — the RAG engine (Avneet)  · backend/features/ (Bhajneek)
+frontend/      chat UI, served at /                          (Manveer)
+evals/         acceptance questions (Jaspreet) + runner (Avneet)
 docs/          REQUIREMENTS.md (judge criteria) · ARCHITECTURE.md (contracts) · brain/ (status, decisions, friction)
 .claude/       shared skills + session-start hook
 ```

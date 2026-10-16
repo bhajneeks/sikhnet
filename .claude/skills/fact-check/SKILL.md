@@ -21,7 +21,7 @@ source of truth.
 4. Output a table: claim · label · entry id · the exact supporting line.
 5. Verdict: PASS only if zero `contradicted`/`misquoted` and no `unsupported`
    claim on a factual/religious point.
-6. For eval runs, append the failures to `evals/results.md` so the backend lane
+6. For eval runs, append the failures to `evals/results.md` so Avneet (RAG lane)
    can see what to fix.
 
 ## Rules

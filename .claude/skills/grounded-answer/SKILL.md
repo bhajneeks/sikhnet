@@ -36,7 +36,7 @@ backend prompt (`backend/prompts.py`) and evals (`evals/`) enforce.
 
 1. Read `backend/prompts.py` and `docs/ARCHITECTURE.md` § API contract.
 2. Make the change.
-3. Run `python3 evals/run_evals.py` (owned by evals lane) before and after.
+3. Run `python3 evals/run_evals.py` (acceptance questions owned by Jaspreet) before and after.
    No merging a prompt change that lowers the grounded/cited scores — this is
    gbrain's no-regression rule from `skillify`.
 4. Record notable prompt decisions with `capture-decision`.

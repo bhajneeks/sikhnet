@@ -1,6 +1,6 @@
-# Bhajneek — Data + retrieval
+# Bhajneek — Future features
 updated: 2026-10-16
-branch: bhajneek/data
+branch: bhajneek/features
 
 ## Now
 Not started — pick up the first item under Next.
@@ -9,12 +9,13 @@ Not started — pick up the first item under Next.
 - (nothing yet)
 
 ## Next
-- Put the real dataset export in data/raw/ and run ingest/ingest.py
-- Fix column mapping + report data-quality issues
-- Improve search() (synonyms, Punjabi terms, maybe embeddings)
+- R5: make Surprise me prompts fun (grounded hook per category), no repeats
+- R3: first secondary-source importer (e.g. SikhiWiki) in ingest/sources/ with source_type secondary
+- R3: work with Avneet on primary-first weighting
+- docs/ROADMAP.md: what we'd build next for the org's other properties
 
 ## Blocked on / needs from others
 - nothing
 
 ## Files I'm touching
-- ingest/, backend/retrieval.py, data/
+- backend/features/, ingest/sources/, docs/ROADMAP.md

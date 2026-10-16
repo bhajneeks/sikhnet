@@ -1,4 +1,4 @@
-"""Claude call for grounded answers. Owner: backend lane."""
+"""Claude call for grounded answers. Owner: Avneet, RAG lane."""
 from __future__ import annotations
 
 import os

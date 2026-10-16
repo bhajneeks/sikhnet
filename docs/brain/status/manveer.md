@@ -1,6 +1,6 @@
-# Manveer — Backend + LLM
+# Manveer — UI / UX
 updated: 2026-10-16
-branch: manveer/backend
+branch: manveer/ui
 
 ## Now
 Not started — pick up the first item under Next.
@@ -9,12 +9,13 @@ Not started — pick up the first item under Next.
 - (nothing yet)
 
 ## Next
-- Add ANTHROPIC_API_KEY to .env and confirm llm mode works
-- Tune the grounding prompt with Jaspreet's evals
-- Add streaming endpoint (additive)
+- Mock up the chat screen in Claude Design (answer, citations, follow-ups, perspectives, Surprise me)
+- Build it in frontend/: follow-up chips (R2), source cards (R1), Other perspectives section (R4)
+- Topic dropdown + Surprise me button calling /api/categories and /api/surprise (R5)
+- Mobile-friendly, loading and not_found states
 
 ## Blocked on / needs from others
 - nothing
 
 ## Files I'm touching
-- backend/app.py, backend/llm.py, backend/prompts.py
+- frontend/

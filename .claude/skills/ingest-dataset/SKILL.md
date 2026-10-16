@@ -9,7 +9,7 @@ Adapted from gbrain's `ingest` + `bulk-ingestion` + `brain-ingest-gate` skills:
 every record keeps where it came from, ingestion is idempotent, and you report
 what you skipped instead of silently dropping it.
 
-## Contract (owned by the data lane — see TEAM.md)
+## Contract (owned by Avneet, RAG lane — see TEAM.md)
 
 Output: `data/processed/qa.jsonl`, one JSON object per line, schema in
 `docs/ARCHITECTURE.md` § Data contract. Required fields: `id`, `question`,

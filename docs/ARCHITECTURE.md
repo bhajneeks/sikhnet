@@ -11,13 +11,13 @@ citations to the original entries.
 
 - Language: Python 3.9+ (FastAPI) for ingest, retrieval, API, evals.
 - Frontend: static HTML/CSS/JS in `frontend/`, served by the backend at `/`
-  (no build step). Avneet may switch to React/Next if wanted — the API contract
+  (no build step). Manveer may switch to React/Next if wanted — the API contract
   stays the same.
 - LLM: Claude via the official `anthropic` SDK, model `claude-opus-5-5`.
 - Retrieval v1: in-memory BM25-style keyword search (no extra services).
   v2 (optional): embeddings.
 
-## 1. Data contract — `data/processed/qa.jsonl` (owner: Bhajneek)
+## 1. Data contract — `data/processed/qa.jsonl` (owner: Avneet; secondary sources: Bhajneek)
 
 One JSON object per line, UTF-8:
 
@@ -43,7 +43,7 @@ One JSON object per line, UTF-8:
 - `id` is stable across re-ingestion: `"qa_" + sha1(normalized question + source)[:10]`.
 - Unknown dataset columns go in `extra` (never dropped silently).
 
-## 2. Retrieval contract — `backend/retrieval.py` (owner: Bhajneek)
+## 2. Retrieval contract — `backend/retrieval.py` (owner: Avneet)
 
 ```python
 def search(query: str, k: int = 5) -> list[dict]:
@@ -51,17 +51,17 @@ def search(query: str, k: int = 5) -> list[dict]:
     Each record is the qa.jsonl object plus "score": float (higher = better).
     When relevance is close, primary sources rank above secondary (R3)."""
 
-def random_question(category: str | None = None) -> dict | None:
-    """R5: a random record (optionally in one category) for "Surprise me"."""
-
-def categories() -> list[str]:
-    """R5: categories that have at least one record."""
+def all_records() -> list[dict]:
+    """Every loaded record (used by backend/features)."""
 ```
 
-Backend calls only `search()`. Internals (BM25, embeddings, hybrid) are
-Bhajneek's to change freely.
+R5 helpers live in `backend/features/surprise.py` (owner: Bhajneek):
+`categories() -> list[str]` and `random_question(category=None) -> dict | None`.
 
-## 3. API contract — `POST /api/ask` (owner: Manveer)
+Backend calls only `search()`. Internals (BM25, embeddings, hybrid) are
+Avneet's to change freely.
+
+## 3. API contract — `POST /api/ask` (owner: Avneet; `/api/categories` + `/api/surprise`: Bhajneek)
 
 Request:
 
@@ -106,7 +106,7 @@ Response:
   Frontend then sends that question to `/api/ask`.
 - Streaming (`POST /api/ask/stream`, SSE) may be added later — additive only.
 
-## 4. Eval contract — `evals/` (owner: Jaspreet)
+## 4. Eval contract — `evals/` (acceptance questions: Jaspreet · runner: Avneet)
 
 - `evals/questions.jsonl`: `{"question": "...", "expected_ids": ["qa_..."], "should_cover": true}`.
 - `python3 evals/run_evals.py [--base-url http://localhost:8000]` prints

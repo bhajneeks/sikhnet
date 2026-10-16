@@ -1,4 +1,4 @@
-"""Run eval questions against a running backend. Owner: evals lane.
+"""Run eval questions against a running backend. Owner: Avneet (runner) · acceptance questions: Jaspreet.
 
 Usage: python3 evals/run_evals.py [--base-url http://localhost:8000] [--questions evals/questions.jsonl]
 Contract: docs/ARCHITECTURE.md § 4.

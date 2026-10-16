@@ -4,7 +4,7 @@ Usage:
   python3 ingest/ingest.py data/raw/questions.csv
   python3 ingest/ingest.py data/raw/export.xlsx --question-col "Question" --answer-col "Answer"
 
-Schema: docs/ARCHITECTURE.md § Data contract. Owner: data lane (see TEAM.md).
+Schema: docs/ARCHITECTURE.md § Data contract. Owner: Avneet, RAG lane (see TEAM.md).
 """
 from __future__ import annotations
 
