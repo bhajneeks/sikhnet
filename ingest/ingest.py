@@ -47,7 +47,9 @@ CATEGORY_MAP = {
     "family_life": "practice",
     "other": "other",
 }
-CONTRACT_CATEGORIES = {"theology", "history", "music", "literature", "practice", "other"}
+# Kept in sync with docs/ARCHITECTURE.md § 1. `art` and `music` have no forum
+# category to map from — backend/features/surprise.py infers those from text.
+CONTRACT_CATEGORIES = {"theology", "history", "music", "literature", "art", "practice", "other"}
 
 GURMUKHI = re.compile(r"[਀-੿]")
 
@@ -270,8 +272,9 @@ def main() -> None:
     print("Categories: " + "  ".join(f"{c}={n}" for c, n in sorted(by_category.items())))
     missing = sorted(CONTRACT_CATEGORIES - set(by_category))
     if missing:
-        print(f"NOTE: no records in category/-ies: {', '.join(missing)} "
-              f"(affects the R5 dropdown — tell Bhajneek)")
+        print(f"NOTE: ingest assigned no records to: {', '.join(missing)}. "
+              f"backend/features/surprise.py infers those topics from text, so the "
+              f"R5 dropdown can still offer them — no action needed unless it doesn't.")
     print(f"Output: {args.out}  ({len(records)} lines)")
 
 

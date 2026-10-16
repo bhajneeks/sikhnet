@@ -13,7 +13,7 @@ citations to the original entries.
 - Frontend: static HTML/CSS/JS in `frontend/`, served by the backend at `/`
   (no build step). Manveer may switch to React/Next if wanted — the API contract
   stays the same.
-- LLM: Claude via the official `anthropic` SDK, model `claude-opus-5-5`.
+- LLM: Claude via the official `anthropic` SDK, model `claude-opus-5`.
 - Retrieval v1: in-memory BM25-style keyword search (no extra services).
   v2 (optional): embeddings.
 
