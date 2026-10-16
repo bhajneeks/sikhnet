@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SikhNet Assistant</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>SikhNet Assistant</h1>
+    <span id="status" class="status"></span>
+  </header>
+
+  <main id="chat">
+    <div class="empty" id="empty">
+      <p>Ask a question about Sikhi. Answers come from our curated Q&amp;A collection, with sources.</p>
+      <div class="starters">
+        <button>What is langar?</button>
+        <button>What are the five Ks?</button>
+        <button>Who founded Sikhi?</button>
+      </div>
+    </div>
+  </main>
+
+  <form id="form">
+    <textarea id="input" rows="1" placeholder="Ask a question…" required></textarea>
+    <button type="submit">Send</button>
+  </form>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+{"question": "Who started the Sikh faith?", "expected_ids": ["qa_sample0001"], "should_cover": true}
+{"question": "What is the community kitchen called?", "expected_ids": ["qa_sample0003"], "should_cover": true}
+{"question": "What are the 5 Ks?", "expected_ids": ["qa_sample0004"], "should_cover": true}
+{"question": "What is the best laptop to buy?", "expected_ids": [], "should_cover": false}
