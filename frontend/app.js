@@ -52,18 +52,28 @@ function inline(text, turn, altNs) {
       return `<button type="button" class="cite${alt}" data-cite="${turn}-${n}" aria-label="Source ${n}">${n}</button>`;
     }).join(""));
 }
+// Works line by line, so a list right under a heading or sentence (no blank line between) still renders as a list.
 function markdown(md, turn, altNs = new Set()) {
   const out = [];
-  for (const block of String(md || "").trim().split(/\n{2,}/)) {
-    const lines = block.split("\n");
-    if (lines.every(l => /^\s*[-*]\s+/.test(l))) {
-      out.push("<ul>" + lines.map(l => `<li>${inline(l.replace(/^\s*[-*]\s+/, ""), turn, altNs)}</li>`).join("") + "</ul>");
-    } else if (lines.every(l => /^\s*\d+[.)]\s+/.test(l))) {
-      out.push("<ol>" + lines.map(l => `<li>${inline(l.replace(/^\s*\d+[.)]\s+/, ""), turn, altNs)}</li>`).join("") + "</ol>");
+  let para = [], list = null;  // list = {tag, items}
+  const flushPara = () => { if (para.length) out.push(`<p>${para.join("<br>")}</p>`); para = []; };
+  const flushList = () => { if (list) out.push(`<${list.tag}>${list.items.map(i => `<li>${i}</li>`).join("")}</${list.tag}>`); list = null; };
+  for (const line of String(md || "").trim().split("\n")) {
+    const bullet = line.match(/^\s*[-*•]\s+(.*)$/), num = line.match(/^\s*\d+[.)]\s+(.*)$/);
+    if (bullet || num) {
+      const tag = bullet ? "ul" : "ol";
+      flushPara();
+      if (list && list.tag !== tag) flushList();
+      if (!list) list = { tag, items: [] };
+      list.items.push(inline((bullet || num)[1], turn, altNs));
+    } else if (!line.trim()) {
+      flushPara(); flushList();
     } else {
-      out.push(`<p>${lines.map(l => inline(l.replace(/^#+\s*/, ""), turn, altNs)).join("<br>")}</p>`);
+      flushList();
+      para.push(inline(line.replace(/^#+\s*/, ""), turn, altNs));
     }
   }
+  flushPara(); flushList();
   return out.join("");
 }
 const plain = md => String(md || "").replace(/\*\*?/g, "").replace(/^#+\s*/gm, "").trim();
