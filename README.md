@@ -39,6 +39,10 @@ From SikhNet's feedback, all anonymous and moderated:
 
 Community data lives in `data/community/community.db` (gitignored, never commit it).
 
+## Deploying
+
+Railway, one service plus a volume. Steps in [docs/DEPLOY.md](docs/DEPLOY.md) (decision 007).
+
 ## Working with Claude Code
 
 Open this folder in Claude Code. At session start a hook runs

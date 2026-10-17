@@ -28,5 +28,6 @@ moderation, bulletin board, landing page. PR into main open; needs Manveer to re
 - Real dataset file in my data/raw to tune keywords on real questions (tested on synthetic threads so far)
 
 ## Files I'm touching
+- railway.json, scripts/start.sh, scripts/fetch_dataset.py, docs/DEPLOY.md (decision 007)
 - frontend/community.*, moderate.*, common.js (new) + landing/rating edits in index.html, app.js, style.css (told Manveer)
 - backend/features/, ingest/sources/, docs/ROADMAP.md

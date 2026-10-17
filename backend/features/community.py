@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import os
 import re
+import secrets
 from collections import Counter
 from typing import Optional
 
@@ -30,9 +31,16 @@ TARGET = re.compile(r"^(post|source|answer):[A-Za-z0-9_.:-]{1,80}$")
 
 
 # ---------------------------------------------------------------- helpers
+def _deployed() -> bool:
+    """Running on a host (Railway, or SIKHNET_PRODUCTION=1), not a laptop."""
+    return bool(os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("SIKHNET_PRODUCTION"))
+
+
 def _ip(request: Request) -> str:
-    fwd = request.headers.get("x-forwarded-for", "")
-    raw = fwd.split(",")[0].strip() or (request.client.host if request.client else "")
+    # Railway's proxy sets X-Real-IP; X-Forwarded-For is a fallback for other hosts.
+    raw = (request.headers.get("x-real-ip", "").strip()
+           or request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+           or (request.client.host if request.client else ""))
     return store.hash_ip(raw)
 
 
@@ -407,9 +415,12 @@ def report(body: ReportIn):
 def _admin(request: Request, token: Optional[str]) -> None:
     want = os.environ.get("SIKHNET_ADMIN_TOKEN")
     if want:
-        if token != want:
+        if not token or not secrets.compare_digest(token, want):
             raise HTTPException(401, "Moderator token required.")
         return
+    if _deployed():
+        # Never fall back to "localhost is trusted" on a server: proxies make that spoofable.
+        raise HTTPException(503, "Moderation is off: set SIKHNET_ADMIN_TOKEN on the server.")
     # No token configured: only allow from this machine (local demo).
     host = request.client.host if request.client else ""
     if host not in ("127.0.0.1", "::1", "localhost", "testclient"):
