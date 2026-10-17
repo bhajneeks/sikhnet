@@ -5,3 +5,4 @@
 - 2026-10-16 13:46 · hit@5 0/3 (0%) · cited 3/3 (100%) · off-topic→not_found 0/1 (0%) · R2 4/4 (100%) · R4 n/a · R5 5/5 (100%) · mode=fallback · html entity decode in ingest
 - 2026-10-16 13:55 · hit@5 0/3 (0%) · cited 1/3 (33%) · off-topic→not_found 1/1 (100%) · R2 1/1 (100%) · R4 n/a · R5 5/5 (100%) · mode=llm · LLM MODE — first real run, claude-opus-5 effort=high
 - 2026-10-16 13:59 · hit@5 0/3 (0%) · cited 2/3 (67%) · off-topic→not_found 1/1 (100%) · R2 2/2 (100%) · R4 n/a · R5 5/5 (100%) · mode=llm · LLM MODE + query expansion
+- 2026-10-16 16:04 · hit@5 0/3 (0%) · cited 2/3 (67%) · off-topic→not_found 1/1 (100%) · R2 2/2 (100%) · R4 n/a · R5 6/6 (100%) · mode=llm · MAIN 5c42ac2 — post-merge verification
