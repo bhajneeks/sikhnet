@@ -1,0 +1,15 @@
+[project]
+name = "sikhnet"
+version = "0.1.0"
+requires-python = ">=3.9"
+# Keep in sync with requirements.txt (Vercel installs from here).
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "anthropic>=0.70",
+    "python-dotenv>=1.0",
+    "openpyxl>=3.1",
+]
+
+[tool.vercel]
+entrypoint = "backend.app:app"
