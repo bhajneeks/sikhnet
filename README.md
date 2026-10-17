@@ -26,6 +26,14 @@ python3 ingest/ingest.py data/raw/<file.csv|xlsx|json>
 
 Then check out your own branch: `git checkout <yourname>/<role>` (see TEAM.md).
 
+## What it needs
+
+- **Python 3.9+** and the packages in `requirements.txt` (FastAPI, Anthropic SDK). No build step for the frontend.
+- **An Anthropic API key** (`ANTHROPIC_API_KEY` in `.env`) for AI answers, follow-ups, perspectives and Surprise me. Without one the app still runs in fallback mode (closest saved answer).
+- **The SikhNet Q&A export**, kept out of git (its terms forbid publishing it). Put it in `data/raw/` and run `ingest/ingest.py`.
+- **Hosting (optional):** Railway, one service plus a volume. See [docs/DEPLOY.md](docs/DEPLOY.md).
+- Placeholders for every setting are in [`.env.example`](.env.example).
+
 ## Community features (decision 006)
 
 From SikhNet's feedback, all anonymous and moderated:
@@ -74,3 +82,7 @@ evals/         acceptance questions (Jaspreet) + runner (Avneet)
 docs/          REQUIREMENTS.md (judge criteria) · ARCHITECTURE.md (contracts) · brain/ (status, decisions, friction)
 .claude/       shared skills + session-start hook
 ```
+
+## License
+
+MIT, see [LICENSE](LICENSE). The SikhNet dataset is not included and is not covered by it.
