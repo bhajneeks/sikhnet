@@ -3,8 +3,19 @@ updated: 2026-10-16
 branch: avneet/rag
 
 ## Now
-Nothing in flight. **llm mode is live and verified** (key in `.env`, gitignored).
-PR #2 open against main; Bhajneek's #1 carries Manveer's UI v1.
+Nothing in flight. Everything is merged to `main`.
+
+**New: `POST /api/ask/stream` (SSE) — decision 005.** Answers stream word by
+word instead of landing all at once. `/api/ask` is unchanged, so nothing breaks
+if it isn't adopted.
+
+**Manveer — this is for you.** Switch the chat call to `/api/ask/stream` and
+append `delta.text` as it arrives. Source cards can render on the `citations`
+event, which fires at 0.01s, before the model has written a word; follow-up
+chips and perspectives come on `meta`. One catch: `meta.citations` is
+authoritative — on `not_found` it is empty, so drop the cards you rendered
+early. Event shape is in decision 005 and ARCHITECTURE.md § 3. Fallback mode
+streams too, so the UI path is identical with or without an API key.
 
 ## Done
 - **Real dataset ingested**: 300 questions / 853 answers → data/processed/qa.jsonl,
@@ -35,6 +46,19 @@ PR #2 open against main; Bhajneek's #1 carries Manveer's UI v1.
 - More retrieval: legacy ASCII-Gurmukhi posts (83 records tagged `gurmukhi`)
   are unsearchable by their Gurmukhi text. Embeddings if recall stays limiting.
 
+
+## Streaming — measured
+- citations at **0.01s** · first word at **6.8s** · complete at **17.0s**
+  (135 deltas, 1787 chars). The user sees sources immediately and the answer
+  starts ~10s before the old endpoint would have returned anything.
+- The 6.8s before the first word is the model **thinking** at
+  `SIKHNET_EFFORT=high`, not overhead. Worth a "thinking" indicator in the UI;
+  `medium` shortens it at some quality cost. Jaspreet should call that tradeoff.
+- Concatenated deltas are byte-identical to `/api/ask`'s `answer` — verified.
+- Structured outputs mean the model emits JSON, so deltas are extracted from the
+  `answer` field mid-stream (`_AnswerTextParser`). Unit-tested at every chunk
+  size down to one byte, including split `\uXXXX` escapes and surrogate pairs
+  (an emoji split across chunks was emitting a broken character — fixed).
 
 ## llm mode — measured, not assumed
 - `claude-opus-5`, effort `high`, structured outputs. ~14s per answer; drop

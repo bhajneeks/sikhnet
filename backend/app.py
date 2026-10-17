@@ -3,6 +3,7 @@
 Run: uvicorn backend.app:app --reload --port 8000
 Contract: docs/ARCHITECTURE.md § 3.
 """
+import json
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -10,6 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from fastapi import FastAPI  # noqa: E402
+from fastapi.responses import StreamingResponse  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 
@@ -30,6 +32,7 @@ MIN_SCORE = 1.0
 MIN_TERM_OVERLAP = 0.5
 # How many of the top hit's sibling answers to pull in for perspectives (R4).
 MAX_THREAD_SIBLINGS = 3
+NOT_FOUND_TEXT = "I couldn't find this in our question bank yet. Try rephrasing?"
 
 
 class Turn(BaseModel):
@@ -151,7 +154,7 @@ def ask(req: AskRequest):
     # Fallback mode (no API key): the top entry verbatim, with follow-ups and
     # perspectives derived from retrieval so the UI is exercised in both modes.
     if not _covered(req.question, hits):
-        return {"answer": "I couldn't find this in our question bank yet. Try rephrasing?",
+        return {"answer": NOT_FOUND_TEXT,
                 "citations": [], "perspectives": [], "follow_ups": [],
                 "coverage": "not_found", "mode": "fallback"}
 
@@ -164,6 +167,89 @@ def ask(req: AskRequest):
         "coverage": "grounded",
         "mode": "fallback",
     }
+
+
+def _sse(event: str, payload: dict) -> str:
+    return f"event: {event}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+
+def _chunk_words(text: str, size: int = 6):
+    """Fallback mode has the whole answer already; hand it over in word groups
+    so the UI's streaming path is exercised identically in both modes."""
+    words = text.split(" ")
+    for i in range(0, len(words), size):
+        yield (" " if i else "") + " ".join(words[i:i + size])
+
+
+def _ask_events(req: AskRequest):
+    """SSE for POST /api/ask/stream (docs/ARCHITECTURE.md § 3).
+
+    citations are known the moment retrieval returns — they come from the
+    dataset, not the model — so they go out before the first token and the
+    source cards can render while the answer is still being written.
+    """
+    try:
+        hits = retrieval.search(req.question, k=5)
+        refs, first_sibling_n = _with_thread_siblings(hits)
+
+        if llm.llm_enabled():
+            yield _sse("citations", {"citations": _citations(refs), "mode": "llm"})
+            result = None
+            for kind, value in llm.answer_stream(
+                req.question, refs, [t.model_dump() for t in req.history]
+            ):
+                if kind == "delta":
+                    yield _sse("delta", {"text": value})
+                else:
+                    result = value
+            result = result or {"answer": "", "coverage": "not_found",
+                                "perspectives": [], "follow_ups": []}
+            not_found = result["coverage"] == "not_found"
+            yield _sse("meta", {
+                "coverage": result["coverage"],
+                "perspectives": result["perspectives"],
+                "follow_ups": result["follow_ups"],
+                # A not_found answer cites nothing, so retract the cards we sent.
+                "citations": [] if not_found else _citations(refs),
+                "mode": "llm",
+            })
+            yield _sse("done", {})
+            return
+
+        # Fallback mode (no API key).
+        if not _covered(req.question, hits):
+            yield _sse("citations", {"citations": [], "mode": "fallback"})
+            for piece in _chunk_words(NOT_FOUND_TEXT):
+                yield _sse("delta", {"text": piece})
+            yield _sse("meta", {"coverage": "not_found", "perspectives": [],
+                                "follow_ups": [], "citations": [], "mode": "fallback"})
+            yield _sse("done", {})
+            return
+
+        top = hits[0]
+        yield _sse("citations", {"citations": _citations(refs), "mode": "fallback"})
+        for piece in _chunk_words(f"**{top['question']}**\n\n{top['answer']} [1]"):
+            yield _sse("delta", {"text": piece})
+        yield _sse("meta", {
+            "coverage": "grounded",
+            "perspectives": _fallback_perspectives(refs, first_sibling_n),
+            "follow_ups": _fallback_follow_ups(hits),
+            "citations": _citations(refs),
+            "mode": "fallback",
+        })
+        yield _sse("done", {})
+    except Exception as exc:  # a dropped stream must not look like a finished answer
+        yield _sse("error", {"message": str(exc)[:200]})
+
+
+@app.post("/api/ask/stream")
+def ask_stream(req: AskRequest):
+    return StreamingResponse(
+        _ask_events(req),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive",
+                 "X-Accel-Buffering": "no"},   # stop proxies buffering the stream
+    )
 
 
 app.mount("/", StaticFiles(directory=Path(__file__).parent.parent / "frontend", html=True), name="frontend")

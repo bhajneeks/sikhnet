@@ -109,7 +109,13 @@ Response:
   `question` is a rabbit-hole hook grounded in entry `id` (= `seed_question` without an API key);
   no repeats until a topic's pool is exhausted; primary entries preferred; `question: null` if nothing matches.
   Frontend then sends that question to `/api/ask`.
-- Streaming (`POST /api/ask/stream`, SSE) may be added later — additive only.
+- `POST /api/ask/stream` (R1/R2/R4) — same request body, Server-Sent Events.
+  Order is `citations` → `delta`* → `meta` → `done` (or `error`).
+  `citations` arrives before the first token (it comes from retrieval, not the
+  model); each `delta` is `{text}` and concatenating them gives exactly the
+  `answer` of `POST /api/ask`; `meta` carries `{coverage, perspectives,
+  follow_ups, citations, mode}` and its `citations` is authoritative — empty on
+  `not_found`. `POST /api/ask` is unchanged. See decision 005.
 
 ## 4. Eval contract — `evals/` (acceptance questions: Jaspreet · runner: Avneet)
 

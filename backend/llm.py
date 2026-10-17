@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 
 import anthropic
 
@@ -32,6 +33,15 @@ def _get_client() -> anthropic.Anthropic:
     if _client is None:
         _client = anthropic.Anthropic()
     return _client
+
+
+def _history_messages(history: list[dict] | None) -> list[dict]:
+    """Contract: history is optional and at most ~10 turns are used."""
+    return [
+        {"role": m["role"], "content": m["content"]}
+        for m in (history or [])[-10:]
+        if m.get("role") in ("user", "assistant") and m.get("content")
+    ]
 
 
 def _normalize(data: dict, n_hits: int) -> dict:
@@ -65,11 +75,7 @@ def _normalize(data: dict, n_hits: int) -> dict:
 
 def answer(question: str, hits: list[dict], history: list[dict] | None = None) -> dict:
     """Returns {answer, coverage, perspectives, follow_ups}."""
-    messages = [
-        {"role": m["role"], "content": m["content"]}
-        for m in (history or [])[-10:]
-        if m.get("role") in ("user", "assistant") and m.get("content")
-    ]
+    messages = _history_messages(history)
     messages.append({"role": "user", "content": build_user_message(question, hits)})
 
     # Server-side fallback: if a safety classifier declines, the API retries on a
@@ -100,3 +106,125 @@ def answer(question: str, hits: list[dict], history: list[dict] | None = None) -
         return {"answer": text, "coverage": "partial", "perspectives": [], "follow_ups": []}
 
     return _normalize(data, len(hits))
+
+
+
+class _AnswerTextParser:
+    r"""Pull the `answer` string out of a JSON object while it is still streaming.
+
+    Structured outputs mean the model emits JSON, so the raw token stream looks
+    like `{"answer":"Sikhs wear…`. Streaming that straight to the browser would
+    show the user JSON syntax. `answer` is the first property in ANSWER_SCHEMA,
+    so its characters arrive before anything else and can be surfaced as prose
+    while coverage, perspectives and follow_ups are still being generated.
+
+    Decoding goes through json.loads on the partial string literal, so escapes
+    (\n, \", \uXXXX) come out right and a chunk that splits an escape
+    sequence is held back until it completes rather than emitting mojibake.
+    """
+
+    def __init__(self) -> None:
+        self._buf = ""          # everything seen so far
+        self._raw = ""          # characters inside the answer string literal
+        self._emitted = 0       # decoded characters already handed out
+        self._started = False
+        self._finished = False
+
+    def feed(self, chunk: str) -> str:
+        """Return the newly available decoded prose (may be empty)."""
+        if self._finished:
+            return ""
+        self._buf += chunk
+
+        if not self._started:
+            marker = re.search(r'"answer"\s*:\s*"', self._buf)
+            if not marker:
+                return ""
+            self._started = True
+            self._raw = self._buf[marker.end():]
+        else:
+            self._raw += chunk
+
+        # Find the closing quote that isn't escaped.
+        end = None
+        i = 0
+        while i < len(self._raw):
+            c = self._raw[i]
+            if c == "\\":
+                i += 2
+                continue
+            if c == '"':
+                end = i
+                break
+            i += 1
+        if end is not None:
+            self._raw = self._raw[:end]
+            self._finished = True
+
+        return self._take()
+
+    def _take(self) -> str:
+        """Decode as much of the literal as is currently decodable."""
+        literal = self._raw
+        for trim in range(0, 7):           # back off past a split \uXXXX
+            candidate = literal[: len(literal) - trim] if trim else literal
+            try:
+                decoded = json.loads('"' + candidate + '"')
+            except json.JSONDecodeError:
+                continue
+            # A chunk can land between the halves of a surrogate pair (emoji).
+            # json.loads decodes a lone high surrogate without complaint, which
+            # would put a broken character on the wire, so hold it back until
+            # its partner arrives.
+            if decoded and "\ud800" <= decoded[-1] <= "\udbff":
+                decoded = decoded[:-1]
+            if len(decoded) <= self._emitted:
+                return ""
+            out = decoded[self._emitted:]
+            self._emitted = len(decoded)
+            return out
+        return ""
+
+
+def answer_stream(question: str, hits: list[dict], history: list[dict] | None = None):
+    """Same call as answer(), yielding ("delta", prose) then ("final", result).
+
+    One request, not two: the prose is surfaced as it arrives and the structured
+    fields are parsed from the same completed JSON.
+    """
+    messages = _history_messages(history)
+    messages.append({"role": "user", "content": build_user_message(question, hits)})
+
+    parser = _AnswerTextParser()
+    with _get_client().beta.messages.stream(
+        model=MODEL,
+        max_tokens=MAX_TOKENS,
+        system=SYSTEM_PROMPT,
+        cache_control={"type": "ephemeral"},
+        output_config={
+            "effort": EFFORT,
+            "format": {"type": "json_schema", "schema": ANSWER_SCHEMA},
+        },
+        betas=["server-side-fallback-2026-07-01"],
+        fallbacks="default",
+        messages=messages,
+    ) as stream:
+        for chunk in stream.text_stream:
+            piece = parser.feed(chunk)
+            if piece:
+                yield ("delta", piece)
+        final = stream.get_final_message()
+
+    if final.stop_reason == "refusal":
+        yield ("final", {"answer": REFUSAL_TEXT, "coverage": "not_found",
+                         "perspectives": [], "follow_ups": []})
+        return
+
+    text = "".join(b.text for b in final.content if b.type == "text").strip()
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        yield ("final", {"answer": text, "coverage": "partial",
+                         "perspectives": [], "follow_ups": []})
+        return
+    yield ("final", _normalize(data, len(hits)))
