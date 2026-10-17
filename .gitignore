@@ -9,6 +9,8 @@ __pycache__/
 data/raw/*
 !data/raw/README.md
 data/processed/
+# Community posts, votes and ask logs are user-generated: never commit (decision 006).
+data/community/
 *.jsonl
 !data/sample/qa_sample.jsonl
 !evals/questions.jsonl

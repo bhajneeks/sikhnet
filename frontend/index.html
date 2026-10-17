@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#18233a" />
-  <title>SikhNet Assistant</title>
+  <title>SikhNet Questions</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Gurmukhi:wght@500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,500&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -42,7 +42,16 @@
       <span class="name">SikhNet Assistant</span>
       <span class="pill" id="status">Answers from SikhNet's Q&amp;A</span>
     </div>
+    <nav class="nav" aria-label="Main">
+      <a class="nav-link active" href="./" aria-current="page">Ask</a>
+      <a class="nav-link" href="community.html">Community</a>
+    </nav>
     <div class="top-actions">
+      <label class="who-mini"><span class="sr-only">Who's asking?</span>
+        <select data-audience-select aria-label="Who's asking?">
+          <option value="">Everyone</option><option value="kids">Kid</option><option value="teens">Teen</option><option value="adults">Adult</option>
+        </select>
+      </label>
       <form class="surprise-bar" data-surprise>
         <label for="topic">Explore a topic</label>
         <select id="topic" data-topics></select>
@@ -60,8 +69,56 @@
 
   <main id="chat" aria-live="polite">
     <section class="home" id="home">
-      <h1>Ask about <em>Sikhi</em>.</h1>
-      <p class="lede">Answers come from SikhNet's Q&amp;A collection, and every one shows its sources.</p>
+      <div class="hero">
+        <p class="kicker"><span class="kicker-dot" aria-hidden="true"></span>20 years of SikhNet's community Q&amp;A, now answering back</p>
+        <h1>Ask about <em>Sikhi</em>.<br><span class="hero-soft">No judgment. Every answer sourced.</span></h1>
+        <p class="lede">Ask anything in your own words: kesh, caste, marriage, parents, doubts. Answers are built only from SikhNet's archive, every claim shows where it came from, and nobody needs an account.</p>
+        <div class="hero-actions">
+          <button type="button" class="btn-accent btn-lg" data-focus-ask>Ask a question</button>
+          <a class="btn-ghost btn-lg" href="community.html">Visit the community board</a>
+        </div>
+        <div class="who" role="radiogroup" aria-label="Who's asking?">
+          <span class="who-label">Who's asking?</span>
+          <button type="button" class="who-opt" role="radio" data-audience="kids">Kid <small>under 13</small></button>
+          <button type="button" class="who-opt" role="radio" data-audience="teens">Teen <small>13–17</small></button>
+          <button type="button" class="who-opt" role="radio" data-audience="adults">Adult</button>
+          <button type="button" class="who-opt" role="radio" data-audience="">Skip</button>
+        </div>
+        <dl class="stats" data-stats>
+          <div><dt>answers in the archive</dt><dd data-stat="records">—</dd></div>
+          <div><dt>topics to explore</dt><dd data-stat="topics">—</dd></div>
+          <div><dt>languages</dt><dd>4</dd></div>
+          <div><dt>accounts needed</dt><dd>0</dd></div>
+        </dl>
+      </div>
+
+      <section class="landing-block" aria-labelledby="how-h">
+        <h2 class="eyebrow" id="how-h">How it works</h2>
+        <ol class="steps">
+          <li class="step"><span class="step-n">1</span><h3>Ask in your words</h3><p>English, Punjabi, Hindi or Spanish. A follow-up keeps the conversation going.</p></li>
+          <li class="step"><span class="step-n">2</span><h3>We search SikhNet's archive</h3><p>Answers from two decades of SikhNet's Q&amp;A, and nothing from outside it.</p></li>
+          <li class="step"><span class="step-n">3</span><h3>An answer you can check</h3><p>Every claim is cited <span class="cite demo">1</span>, other views are shown below, and if it isn't covered we say so.</p></li>
+          <li class="step"><span class="step-n">4</span><h3>Rate it and keep exploring</h3><p>Helpful answers rise to the top. Take it further on the community board.</p></li>
+        </ol>
+      </section>
+
+      <section class="landing-block" aria-labelledby="pop-h">
+        <div class="block-head">
+          <h2 class="eyebrow" id="pop-h">Popular right now</h2>
+          <span class="block-note" data-popular-note></span>
+        </div>
+        <div class="chips" data-popular-topics></div>
+        <div class="pop-grid">
+          <div class="pop-col">
+            <h3>Most asked</h3>
+            <div class="option-list" data-popular-asked></div>
+          </div>
+          <div class="pop-col">
+            <h3>Most discussed in the archive</h3>
+            <div class="option-list" data-popular-discussed></div>
+          </div>
+        </div>
+      </section>
 
       <form class="surprise-card" data-surprise>
         <h2>Not sure where to start?</h2>
@@ -77,10 +134,27 @@
           </div>
         </div>
         <button type="submit" class="btn-accent">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg>
           Surprise me
         </button>
       </form>
+
+      <section class="landing-block" aria-labelledby="comm-h">
+        <div class="block-head">
+          <h2 class="eyebrow" id="comm-h">From the community board</h2>
+          <a class="block-link" href="community.html">See all →</a>
+        </div>
+        <div class="board-preview" data-board-preview></div>
+      </section>
+
+      <section class="landing-block" aria-labelledby="safe-h">
+        <h2 class="eyebrow" id="safe-h">A safe place to ask</h2>
+        <div class="trust">
+          <div class="trust-item"><h3>Anonymous</h3><p>No accounts and no names. Ask the question you'd never ask out loud.</p></div>
+          <div class="trust-item"><h3>Grounded</h3><p>Answers come only from SikhNet's sources. Gurbani is never invented.</p></div>
+          <div class="trust-item"><h3>Moderated</h3><p>Bots, spam and hate are filtered out, people can report posts, and SikhNet moderators review them.</p></div>
+          <div class="trust-item"><h3>Real help in a crisis</h3><p>If someone is in danger, we connect them to people who can help instead of an AI answer.</p></div>
+        </div>
+      </section>
 
       <h2 class="eyebrow">Or try one of these</h2>
       <div class="option-list">
@@ -112,6 +186,7 @@
     <p class="fineprint">Answers only use SikhNet's sources and always show where they came from.</p>
   </form>
 
+  <script src="common.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

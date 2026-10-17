@@ -3,9 +3,14 @@ updated: 2026-10-16
 branch: bhajneek/features
 
 ## Now
-R5 Surprise me v3 pushed (PR #1). Branch now also carries avneet/rag + manveer/ui merges.
+SikhNet feedback shipped on bhajneek/features (decision 006): ratings, popular, age groups,
+moderation, bulletin board, landing page. PR into main open; needs Manveer to review UI edits.
 
 ## Done
+- Decision 006 (SikhNet feedback): 👍/👎 + Wilson ranking + accuracy tags; popular topics / most asked;
+  Kid/Teen/Adult age groups; moderation (bots, hate, links, Claude review, reports, queue at /moderate.html);
+  crisis → help lines, never AI; community board at /community.html; landing page explaining the product.
+  All in backend/features/ + new pages; /api/ask untouched. SQLite in data/community/ (gitignored).
 - R5 v3: picks per question thread, forum category + keyword topics (music/art now populate),
   quality-filtered seeds, hooks verified retrievable via search(), team model, background
   prefetch (instant clicks). Evals: R5 6/6 categories.
@@ -23,4 +28,5 @@ R5 Surprise me v3 pushed (PR #1). Branch now also carries avneet/rag + manveer/u
 - Real dataset file in my data/raw to tune keywords on real questions (tested on synthetic threads so far)
 
 ## Files I'm touching
+- frontend/community.*, moderate.*, common.js (new) + landing/rating edits in index.html, app.js, style.css (told Manveer)
 - backend/features/, ingest/sources/, docs/ROADMAP.md

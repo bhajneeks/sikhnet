@@ -26,6 +26,19 @@ python3 ingest/ingest.py data/raw/<file.csv|xlsx|json>
 
 Then check out your own branch: `git checkout <yourname>/<role>` (see TEAM.md).
 
+## Community features (decision 006)
+
+From SikhNet's feedback, all anonymous and moderated:
+
+- **Rate answers:** 👍/👎 on every answer, source and reply; the best rise to the top, with tags like "Highly rated · 92% helpful".
+- **Popular:** trending topics, most-asked questions and most-discussed archive threads on the landing page.
+- **Age groups:** "Who's asking? Kid / Teen / Adult" filters what's shown and gently gates grown-up questions for kids.
+- **Moderation:** bot checks, hate/spam filters, Claude review, reports, and a moderator queue at `/moderate.html`
+  (set `SIKHNET_ADMIN_TOKEN` to use it from another computer). Crisis messages get help lines, never an AI answer.
+- **Community board:** `/community.html`, where people post questions, reply, vote and report.
+
+Community data lives in `data/community/community.db` (gitignored, never commit it).
+
 ## Working with Claude Code
 
 Open this folder in Claude Code. At session start a hook runs

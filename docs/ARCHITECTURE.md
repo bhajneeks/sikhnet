@@ -117,6 +117,34 @@ Response:
   follow_ups, citations, mode}` and its `citations` is authoritative — empty on
   `not_found`. `POST /api/ask` is unchanged. See decision 005.
 
+## 3b. Community contract — `backend/features/community.py` (owner: Bhajneek, decision 006)
+
+SikhNet's feedback: answer ratings, popular topics, age groups, moderation, and a
+bulletin board. Storage is SQLite at `data/community/community.db` (gitignored;
+override with `SIKHNET_DB`). Anonymous: the browser sends a random `voter` id
+(8-64 chars `[A-Za-z0-9_-]`); IPs are stored only as salted hashes.
+**Board content is never passed to the answering model.**
+
+Ages: `audience` = `kids | teens | adults` (omit = no filter). Content `age_rating` =
+`all | teen | adult` from keyword rules; a list only shows items the audience allows.
+
+| Endpoint | Body / query | Returns |
+|---|---|---|
+| `POST /api/check` | `{text, audience?}` | `{crisis, help, age_rating, allowed}`; UI calls it before `/api/ask*`. Crisis → show `help`, never call the model. |
+| `POST /api/vote` | `{target, value: 1\|-1\|0, voter, reason?}`, target = `answer:<hash>` \| `source:<record id>` \| `post:<id>` | `{up, down, score, mine, tag}`. `score` = Wilson lower bound; `tag` = `{kind: good\|mixed\|low, label}` after 3+ votes |
+| `GET /api/ratings` | `?targets=a,b&voter=` | `{ratings: {target: {...}}}` |
+| `POST /api/track` | `{question, voter, audience?}` | counts a question for "most asked" (crisis text never stored) |
+| `GET /api/popular` | `?audience=` | `{topics, topics_source, asked, discussed, board}` |
+| `GET /api/board` | `?sort=top\|new\|unanswered&topic=&audience=&q=&voter=` | `{threads, total, topics}` |
+| `GET /api/board/{id}` | `?audience=&voter=` | `{thread, replies (verified, then score), related (archive questions)}` |
+| `POST /api/board` | `{title, body?, topic?, audience?, author?, voter, elapsed_ms, website}` | `{ok, id, status: visible\|review, message, help?}` or `{ok: false, status: "blocked", message}` |
+| `POST /api/board/{id}/reply` | `{body, author?, voter, elapsed_ms, website}` | same as above |
+| `POST /api/report` | `{target, voter, reason?}` | 3 reports → post hidden for review |
+| `GET /api/mod/queue`, `POST /api/mod/post/{id}` `{action: approve\|hide\|delete\|verify\|unverify}` | header `X-Admin-Token` = `SIKHNET_ADMIN_TOKEN` (unset → localhost only) | moderator queue, low-rated answers, log |
+
+`GET /api/surprise` also takes `?audience=` and returns `age_rating`; well-rated
+archive answers are picked more often.
+
 ## 4. Eval contract — `evals/` (acceptance questions: Jaspreet · runner: Avneet)
 
 - `evals/questions.jsonl`: `{"question": "...", "expected_ids": ["qa_..."], "should_cover": true}`.

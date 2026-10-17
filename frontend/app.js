@@ -1,4 +1,6 @@
-// Chat UI. Owner: Manveer, UI lane. Talks to POST /api/ask, GET /api/categories,
+// Chat UI. Owner: Manveer, UI lane. Community additions (landing data, ratings, age check,
+// crisis help, "ask the community"): Bhajneek, decision 006 — uses common.js (SN).
+// Original: Chat UI. Owner: Manveer, UI lane. Talks to POST /api/ask, GET /api/categories,
 // GET /api/surprise (docs/ARCHITECTURE.md § 3). Design: docs/brain/status/manveer.md.
 const chat = document.getElementById("chat");
 const form = document.getElementById("form");
@@ -94,6 +96,7 @@ function newChat() {
   document.body.classList.remove("has-chat");
   toBottom.hidden = true;
   fillTopics();
+  fillHome();
   window.scrollTo({ top: 0 });
   input.focus();
 }
@@ -117,9 +120,41 @@ function renderSources(citations, turn) {
     c.answer_excerpt ? h("p", {}, c.answer_excerpt) : null,
     c.source_url ? h("a", { href: c.source_url, target: "_blank", rel: "noopener" }, "Read the full entry") : null,
   ));
+  cards.forEach((card, i) => {
+    const c = citations[i];
+    card.dataset.target = `source:${c.id}`;
+    card.dataset.n = c.n;
+    const bar = SN.voteBar(`source:${c.id}`, {}, { compact: true, label: "Was this source helpful?",
+      onChange: () => reorderSources(card.parentElement) });
+    card.append(bar);
+    card._bar = bar;
+  });
   return h("section", { class: "block", "aria-label": "Sources" },
     h("h2", { class: "eyebrow" }, `Where this answer comes from · ${citations.length}`),
     h("div", { class: "sources" }, ...cards));
+}
+
+// Feedback #1: better-rated sources rise to the top (citation numbers stay the same).
+function reorderSources(grid) {
+  if (!grid) return;
+  const cards = [...grid.children];
+  const score = c => c._score ?? 0;
+  cards.sort((a, b) => score(b) - score(a) || Number(a.dataset.n) - Number(b.dataset.n));
+  cards.forEach(c => grid.append(c));
+}
+async function hydrateRatings(article, answerTarget) {
+  const cards = [...article.querySelectorAll(".source[data-target]")];
+  const targets = [answerTarget, ...cards.map(c => c.dataset.target)].filter(Boolean);
+  const r = await SN.ratings(targets);
+  if (answerTarget && article._answerBar && r[answerTarget]) article._answerBar.update(r[answerTarget]);
+  cards.forEach(c => {
+    const t = r[c.dataset.target];
+    if (!t) return;
+    c._bar.update(t);
+    c._score = t.score - (t.down > t.up ? 0.3 : 0);
+    if (t.tag) c.querySelector(".source-meta").append(h("span", { class: `src-tag ${t.tag.kind}` }, t.tag.label));
+  });
+  reorderSources(article.querySelector(".sources"));
 }
 
 // ---- R4 (+R3 secondary material): other perspectives ----
@@ -159,8 +194,10 @@ function renderActions(res, question) {
       setTimeout(() => { copyBtn.firstChild.innerHTML = ICON.copy; copyBtn.lastChild.textContent = "Copy"; }, 1600);
     } catch (e) {}
   });
+  const community = h("a", { class: "action", href: `community.html?ask=${encodeURIComponent(question)}` },
+    h("span", { html: SN.ICON.users }), h("span", { class: "action-label" }, "Ask the community"));
   return h("div", { class: "actions" },
-    copyBtn,
+    copyBtn, community,
     h("button", { type: "button", class: "action", "aria-label": "Ask again", onclick: () => send(question) },
       h("span", { html: ICON.retry }), h("span", { class: "action-label" }, "Ask again")),
     res.mode === "fallback" ? h("span", { class: "mode-note" }, "Closest saved answer · AI summary off") : null);
@@ -184,7 +221,16 @@ function renderAnswer(res, turn, question) {
   mainNs.forEach(n => altNs.delete(n));
 
   if (res.coverage === "not_found") return h("article", { class: "turn" }, renderNotFound(res));
-  return h("article", { class: "turn" },
+  // Feedback #1: an accuracy tag (how well SikhNet's sources cover it) + a community rating.
+  const nSources = (res.citations || []).filter(c => c.source_type !== "secondary").length;
+  const accuracy = res.coverage === "partial"
+    ? h("span", { class: "acc-tag partial" }, h("span", { html: SN.ICON.shield }), "Partly covered by SikhNet's sources")
+    : h("span", { class: "acc-tag good" }, h("span", { html: SN.ICON.shield }), `Grounded in ${nSources} SikhNet source${nSources === 1 ? "" : "s"}`);
+  const answerTarget = `answer:${hashText(question + "\n" + (res.answer || ""))}`;
+  const answerBar = SN.voteBar(answerTarget, {}, { label: "Was this answer helpful?",
+    reasons: ["Inaccurate", "Didn't answer my question", "Hard to understand", "Offensive"] });
+  const art = h("article", { class: "turn" },
+    h("div", { class: "rate-row" }, accuracy, SN.audience ? h("span", { class: "aud-tag" }, SN.audienceLabel(SN.audience)) : null),
     res.coverage === "partial" ? h("div", { class: "partial", role: "note" },
       h("span", { html: ICON.info }),
       h("span", {}, "Our sources only partly cover this. Check the entries below before relying on it.")) : null,
@@ -192,7 +238,20 @@ function renderAnswer(res, turn, question) {
     renderActions(res, question),
     renderSources(res.citations, turn),
     renderPerspectives(res.perspectives, turn, altNs),
-    renderFollowUps(res.follow_ups));
+    renderFollowUps(res.follow_ups),
+    h("section", { class: "block rate-block", "aria-label": "Rate this answer" }, answerBar));
+  art._answerBar = answerBar;
+  hydrateRatings(art, answerTarget);
+  return art;
+}
+function hashText(s) {
+  // Two FNV-1a passes → a short stable id for "this answer to this question".
+  let a = 0x811c9dc5, b = 0x01000193;
+  for (let i = 0; i < s.length; i++) {
+    a = Math.imul(a ^ s.charCodeAt(i), 16777619) >>> 0;
+    b = Math.imul(b ^ s.charCodeAt(s.length - 1 - i), 2246822519) >>> 0;
+  }
+  return a.toString(16).padStart(8, "0") + b.toString(16).padStart(8, "0");
 }
 
 // Loading: staged label + elapsed seconds, so people know it's working.
@@ -275,6 +334,38 @@ async function send(question, opts = {}) {
   chat.append(pending);
   afterAppend();
   controller = new AbortController();
+
+  // Brief non-negotiable: crisis messages go to people, never to the AI.
+  // Feedback #3: a question above the chosen age group gets a gentle gate.
+  if (!opts.skipCheck) {
+    let chk = null;
+    try { chk = await SN.api("/api/check", { text: question, audience: SN.audience || null }); } catch (e) {}
+    if (chk?.crisis) {
+      pending.stop();
+      // Chat messages aren't stored, so don't promise a moderator will see it (board posts are).
+      pending.replaceWith(h("article", { class: "turn" }, SN.helpCard({ ...chk.help,
+        human: "Please also talk to a parent, teacher, Granthi or someone you trust. You can come back and ask anything, any time." })));
+      controller = null;
+      setBusy(false);
+      afterAppend();
+      return;
+    }
+    if (chk && !chk.allowed) {
+      pending.stop();
+      pending.replaceWith(h("section", { class: "notice", role: "status" },
+        h("div", { class: "notice-head" }, h("span", { html: ICON.info }), h("h2", {}, "This one is for older readers")),
+        h("p", {}, `You're in ${SN.audienceLabel(SN.audience).toLowerCase()}. This question touches on grown-up topics, so it's a good one to talk about with a parent, teacher or Granthi.`),
+        h("div", { class: "option-list" },
+          h("button", { type: "button", class: "option", onclick: () => { SN.setAudience(""); send(question, { ...opts, skipCheck: true }); } },
+            "I'm older: show the answer", h("span", { html: ICON.arrow })))));
+      userMsg.remove();
+      controller = null;
+      setBusy(false);
+      afterAppend();
+      return;
+    }
+  }
+  SN.api("/api/track", { question, voter: SN.voter, audience: SN.audience || null }).catch(() => {});
 
   // Built up as events arrive; shaped exactly like an /api/ask response so the
   // existing renderers can finish the turn.
@@ -404,7 +495,10 @@ const SURPRISE_TRIES = 3;
 async function surprise(category, attempt = 1) {
   if (busy) return;
   try {
-    const qs = category ? `?category=${encodeURIComponent(category)}` : "";
+    const params = new URLSearchParams();
+    if (category) params.set("category", category);
+    if (SN.audience) params.set("audience", SN.audience);
+    const qs = params.toString() ? `?${params}` : "";
     const res = await (await fetch(`/api/surprise${qs}`)).json();
     if (res.question) return send(res.question, {
       loadingLabel: attempt > 1 ? "Finding a better question for you…" : "Finding a rabbit hole…",
@@ -497,5 +591,58 @@ setInterval(() => {
 fetch("/api/health").then(r => r.json()).then(hl => {
   document.getElementById("status").textContent = `Answers from SikhNet's Q&A · ${hl.records} entries`;
 }).catch(() => {});
-loadTopics();
+// ---- Landing page: stats, popular topics / questions (feedback #2), board preview ----
+let healthRecords = null;
+async function fillHome() {
+  const home = document.getElementById("home");
+  if (!home) return;
+  home.querySelectorAll("[data-audience]").forEach(b => {
+    const on = b.dataset.audience === SN.audience && localStorage.getItem("sn-audience") !== null;
+    b.classList.toggle("on", on);
+  });
+  home.querySelectorAll("[data-stat=records]").forEach(el => { if (healthRecords != null) el.textContent = healthRecords.toLocaleString(); });
+  home.querySelectorAll("[data-stat=topics]").forEach(el => { if (topicKeys.length) el.textContent = topicKeys.length; });
+  let pop;
+  try { pop = await SN.api(`/api/popular${SN.audience ? `?audience=${SN.audience}` : ""}`); } catch (e) { return; }
+  const note = home.querySelector("[data-popular-note]");
+  if (note) note.textContent = `${pop.topics_source === "community" ? "What people are asking this month" : "Based on SikhNet's archive until more people ask"}${SN.audience ? ` · ${SN.audienceLabel(SN.audience)}` : ""}`;
+  home.querySelector("[data-popular-topics]")?.replaceChildren(...pop.topics.map(t =>
+    h("button", { type: "button", class: "chip", onclick: () => surprise(t.key) }, t.label, h("span", { class: "chip-n" }, String(t.count)))));
+  const asked = pop.asked.length ? pop.asked : [];
+  const askedEl = home.querySelector("[data-popular-asked]");
+  if (askedEl) askedEl.replaceChildren(...(asked.length ? asked.slice(0, 5).map(a => {
+    const b = optionButton(a.question);
+    b.insertBefore(h("span", { class: "ask-count", title: `${a.count} people asked` }, `×${a.count}`), b.lastChild);
+    return b;
+  }) : [h("p", { class: "empty-note" }, "Nothing yet. Be the first to ask something.")]));
+  home.querySelector("[data-popular-discussed]")?.replaceChildren(...pop.discussed.slice(0, 5).map(d => {
+    const b = optionButton(d.question.endsWith("?") ? d.question : `${d.question}?`);
+    b.insertBefore(h("span", { class: "ask-count", title: `${d.answers} answers in the archive` }, `${d.answers} answer${d.answers === 1 ? "" : "s"}`), b.lastChild);
+    return b;
+  }));
+  const prev = home.querySelector("[data-board-preview]");
+  if (prev) prev.replaceChildren(...(pop.board.length ? pop.board.map(t =>
+    h("a", { class: "preview-card", href: `community.html#t=${t.id}` },
+      h("span", { class: "preview-meta" }, [t.topic_label, `${t.replies} repl${t.replies === 1 ? "y" : "ies"}`, t.has_verified ? "✓ verified answer" : null].filter(Boolean).join(" · ")),
+      h("span", { class: "preview-title" }, t.title),
+      t.top_reply ? h("span", { class: "preview-reply" }, `“${t.top_reply.body}”`) : h("span", { class: "preview-reply muted" }, "No replies yet. Can you help?")))
+    : [h("a", { class: "preview-card empty", href: "community.html" },
+        h("span", { class: "preview-title" }, "The board is brand new."),
+        h("span", { class: "preview-reply" }, "Ask the first question. Others can reply, and the best replies rise to the top."))]));
+}
+document.addEventListener("click", e => {
+  if (e.target.closest("[data-focus-ask]")) { input.focus(); input.scrollIntoView({ behavior: "smooth", block: "center" }); }
+});
+SN.onAudience(() => { fillHome(); });
+fetch("/api/health").then(r => r.json()).then(hl => { healthRecords = hl.records; fillHome(); }).catch(() => {});
+loadTopics().then(fillHome);
+
+// Deep link: /?q=… asks straight away (used by the community board's archive links).
+const deepQ = new URLSearchParams(location.search).get("q");
+if (deepQ) {
+  document.getElementById("intro")?.remove();
+  document.body.classList.remove("intro-active");
+  window.history.replaceState(null, "", location.pathname);
+  setTimeout(() => send(deepQ), 50);
+}
 if (!document.body.classList.contains("intro-active") && matchMedia("(pointer: fine)").matches) input.focus();  // no surprise keyboard on phones

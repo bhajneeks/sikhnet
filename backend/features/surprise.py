@@ -29,6 +29,7 @@ from typing import Optional
 from fastapi import APIRouter
 
 from backend import llm, retrieval
+from backend.features import audience as ages, store
 
 router = APIRouter()
 
@@ -63,7 +64,7 @@ TOPICS: dict[str, tuple[str, list[str]]] = {
         "photo", "portrait", "image",
     ]),
     "practice": ("Practice & Daily Life", [
-        "kesh", "hair", "turban", "dastar", "pagg", "five k", "5 k", "kara", "kirpan",
+        "kesh", "hair", "turban", "dastar", "pagg", "patka", "keski", "joora", "five k", "5 k", "kara", "kirpan",
         "kangha", "kachera", "amrit", "rehat", "rahit", "langar", "seva", "sewa", "nitnem",
         "diet", "meat", "alcohol", "wedding", "anand karaj", "marriage", "naming",
         "gurpurab", "daily", "gurdwara", "sangat", "parents",
@@ -136,6 +137,7 @@ def _build_threads() -> dict[str, dict]:
     for t in threads.values():
         t["topics"] = _classify(t["question"], t["body"], t["answers"], t["categories"], t["tags"])
         t["good"] = _good_seed(t)
+        t["age"] = ages.rate_text(f"{t['question']} {t['body']}", t["answers"])  # feedback #3
         # Richer threads make better rabbit holes (and better R4 perspectives).
         t["weight"] = 1 + min(len(t["answers"]), 5) + min(sum(map(len, t["answers"])) // 1500, 3)
     return threads
@@ -170,8 +172,39 @@ def categories() -> list[str]:
     return [k for k in TOPICS if counts.get(k)] + sorted(c for c in counts if c not in TOPICS)
 
 
-def _pool(topic: Optional[str]) -> list[dict]:
-    threads = _all_threads()
+def topics_for_text(text: str) -> list[str]:
+    """Topic keys for free text (board posts, asked questions), best guess first."""
+    found = _classify(text, "", [], set(), set())
+    return [k for k in TOPICS if k in found]
+
+
+def threads_for(audience: Optional[str] = None) -> list[dict]:
+    """Good-quality archive threads suitable for the audience."""
+    return [t for t in _all_threads().values() if t["good"] and ages.allowed(t["age"], audience)]
+
+
+_quality_cache: dict = {"at": 0.0, "scores": {}}
+
+
+def _quality() -> dict[str, float]:
+    """Thread id -> best community score of its answers (cached 30 s). Feedback #1:
+    answers people rate well come up more often."""
+    if store.now() - _quality_cache["at"] > 30:
+        by_record = {}
+        for r in store.q("SELECT target, SUM(value > 0) AS up, SUM(value < 0) AS down FROM votes "
+                         "WHERE target LIKE 'source:%' GROUP BY target"):
+            by_record[r["target"][7:]] = store.wilson(r["up"], r["down"]) - (0.3 if r["down"] > r["up"] else 0)
+        scores: dict[str, float] = {}
+        for rec in retrieval.all_records():
+            if rec["id"] in by_record:
+                tid = _thread_id(rec)
+                scores[tid] = max(scores.get(tid, -1.0), by_record[rec["id"]])
+        _quality_cache.update(at=store.now(), scores=scores)
+    return _quality_cache["scores"]
+
+
+def _pool(topic: Optional[str], audience: Optional[str] = None) -> list[dict]:
+    threads = {k: t for k, t in _all_threads().items() if ages.allowed(t["age"], audience)}
     if not _key(topic):
         pool = list(threads.values())
     elif (k := _resolve(topic) or (_key(topic) if _key(topic) in categories() else None)):
@@ -183,18 +216,19 @@ def _pool(topic: Optional[str]) -> list[dict]:
     return [t for t in good if t["primary"]] or good
 
 
-def _pick(topic: Optional[str]) -> Optional[dict]:
-    pool = _pool(topic)
+def _pick(topic: Optional[str], audience: Optional[str] = None) -> Optional[dict]:
+    pool = _pool(topic, audience)
     if not pool:
         return None
-    key = _key(topic) or "*"
+    key = f"{_key(topic) or '*'}|{ages.normalize(audience) or ''}"
+    quality = _quality()
     with _lock:
         shown = _shown.setdefault(key, set())
         fresh = [t for t in pool if t["id"] not in shown]
         if not fresh:  # whole pool served: new cycle, but never the same question twice in a row
             shown.clear()
             fresh = [t for t in pool if t["id"] != _last.get(key)] or pool
-        t = random.choices(fresh, weights=[x["weight"] for x in fresh])[0]
+        t = random.choices(fresh, weights=[max(0.2, x["weight"] * (1 + 2 * quality.get(x["id"], 0))) for x in fresh])[0]
         shown.add(t["id"])
         _last[key] = t["id"]
     return t
@@ -251,21 +285,25 @@ def _label(topic: Optional[str], t: dict) -> tuple[str, str]:
     return cat, TOPICS[cat][0] if cat in TOPICS else (topic or "Sikhi")
 
 
-def _prepare(topic: Optional[str]) -> Optional[dict]:
-    t = _pick(topic)
+def _prepare(topic: Optional[str], audience: Optional[str] = None) -> Optional[dict]:
+    t = _pick(topic, audience)
     if not t:
         return None
     cat, label = _label(topic, t)
     return {"question": _hook(t, label), "category": cat, "id": t["seed"]["id"],
-            "seed_question": t["question"]}
+            "seed_question": t["question"], "age_rating": t["age"]}
 
 
-def _prefetch(topic: Optional[str]) -> None:
+def _ready_key(topic: Optional[str], audience: Optional[str]) -> str:
+    return f"{_key(topic) or '*'}|{ages.normalize(audience) or ''}"
+
+
+def _prefetch(topic: Optional[str], audience: Optional[str] = None) -> None:
     def run():
-        res = _prepare(topic)
+        res = _prepare(topic, audience)
         if res:
             with _lock:
-                _ready[_key(topic) or "*"] = res
+                _ready[_ready_key(topic, audience)] = res
     threading.Thread(target=run, daemon=True).start()
 
 
@@ -277,12 +315,12 @@ def get_categories():
 
 
 @router.get("/api/surprise")
-def surprise(category: Optional[str] = None):
+def surprise(category: Optional[str] = None, audience: Optional[str] = None):
     with _lock:
-        res = _ready.pop(_key(category) or "*", None)
-    res = res or _prepare(category)
+        res = _ready.pop(_ready_key(category, audience), None)
+    res = res or _prepare(category, audience)
     if not res:
         return {"question": None, "category": category, "id": None}
     if llm.llm_enabled():
-        _prefetch(category)  # make the next click instant
+        _prefetch(category, audience)  # make the next click instant
     return res
