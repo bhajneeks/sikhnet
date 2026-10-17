@@ -550,3 +550,28 @@ a.option { text-decoration: none; color: inherit; }
 }
 body:not(.has-chat) .hero .btn-ghost { display: inline-flex; }  /* the topbar rule above hides ghost buttons on home */
 [hidden] { display: none !important; }  /* card styles set display; hidden must still win */
+
+/* ---- Phone layout for the community additions (checked at 390px) ---- */
+a.action { text-decoration: none; }
+@media (max-width: 640px) {
+  /* Top bar: [logo] [Ask | Community] [age] on one row; Surprise me controls (chat only) on the next. */
+  .topbar { gap: 10px 8px; }
+  .topbar .name { display: none; }
+  .top-actions { display: contents; }
+  .topbar .brand { order: 0; }
+  .topbar .nav { order: 1; }
+  .who-mini { order: 2; margin-left: auto; }
+  .who-mini select { height: 36px; width: 100px; padding: 0 8px; font-size: 13px; }
+  .top-actions .surprise-bar { order: 3; flex: 1 1 calc(100% - 56px); width: auto; }
+  .topbar #new-chat { order: 4; }
+  .nav-link { padding: 6px 12px; }
+  .mod-stats div:last-child { grid-column: 1 / -1; }
+  .rate-block { padding: 14px; }
+  .rate-block .vote-label { width: 100%; }
+  .hero-actions .btn-lg { flex: 1 1 100%; justify-content: center; }
+  .thread-actions { gap: 8px; }
+  .reply-foot { gap: 8px; }
+  .board-hero h1 { font-size: 40px; }
+  .toolbar, .filters { width: 100%; }
+  .filters select, .filters input { flex: 1 1 0; min-width: 0; }
+}
