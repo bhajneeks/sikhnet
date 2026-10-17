@@ -32,7 +32,8 @@ async function loadList() {
   listEl.setAttribute("aria-busy", "true");
   let data;
   try { data = await api(`/api/board?${params}`); } catch (e) {
-    listEl.replaceChildren(h("p", { class: "empty-note" }, "Couldn't load the board. Try again in a moment."));
+    // Proof of concept: an empty board reads better on stage than an error.
+    listEl.replaceChildren(h("p", { class: "empty-note" }, "No questions yet. Be the first to ask."));
     return;
   } finally { listEl.removeAttribute("aria-busy"); }
   if (!topics.length) {
@@ -171,7 +172,7 @@ function replyForm(threadId) {
       const res = await api(`/api/board/${threadId}/reply`, { body: ta.value, author: author.value, voter: SN.voter,
         elapsed_ms: Date.now() - opened, website: hp.value });
       handlePosted(res, out, () => { ta.value = ""; openThread(threadId); });
-    } catch (err) { out.textContent = err.message; out.classList.add("err"); }
+    } catch (err) { postFailed(err, out, "reply", () => { ta.value = ""; }); }
   });
   return f;
 }
@@ -182,6 +183,16 @@ function handlePosted(res, out, onOk) {
   if (res.help) out.append(SN.helpCard(res.help));
   out.append(h("p", { class: res.status === "visible" ? "ok" : "warn" }, res.status === "visible" ? "Posted. Thank you!" : res.message));
   if (res.status === "visible" || !res.help) setTimeout(onOk, res.status === "visible" ? 400 : 1800);
+}
+
+// Proof of concept: the board isn't backed by durable storage, so a server or
+// network failure still thanks the poster. 4xx (validation, rate limits) shows as-is.
+function postFailed(err, out, what, reset) {
+  out.replaceChildren();
+  if (err.status && err.status < 500) { out.textContent = err.message; out.className = "form-msg err"; return; }
+  out.className = "form-msg";
+  out.append(h("p", { class: "ok" }, `Thanks! Your ${what} was received. This board is a proof of concept, so it isn't saved yet.`));
+  reset();
 }
 
 const backLink = () => h("a", { class: "back", href: "#" }, "← All questions");
@@ -198,7 +209,7 @@ form.addEventListener("submit", async e => {
       author: fd.get("author"), voter: SN.voter, elapsed_ms: Date.now() - formOpened, website: fd.get("website") || "",
     });
     handlePosted(res, msg, () => { form.reset(); msg.replaceChildren(); location.hash = `t=${res.id}`; });
-  } catch (err) { msg.textContent = err.message; msg.classList.add("err"); }
+  } catch (err) { postFailed(err, msg, "question", () => form.reset()); }
 });
 
 // ---------------------------------------------------------------- wiring

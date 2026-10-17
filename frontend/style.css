@@ -447,6 +447,7 @@ a.btn-ghost { text-decoration: none; }
 .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 .post-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; }
 .fineprint-left { margin: 0; font: 400 11px/1.6 var(--mono); color: var(--muted); max-width: 44em; }
+.poc-note { margin: 0; font: 400 12px/1.6 var(--mono); color: var(--basanti-deep); }
 .form-msg { font-size: 14px; display: flex; flex-direction: column; gap: 12px; }
 .form-msg:empty { display: none; }
 .form-msg.err, .form-msg .err { color: #8a2f22; }
