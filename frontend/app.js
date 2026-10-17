@@ -13,7 +13,8 @@ let controller = null;
 let turnCount = 0;
 let topicLabels = {};
 
-const EXAMPLES = ["What is langar?", "What are the five Ks?", "Who founded Sikhi?", "What happens at a Gurdwara?", "What is Vaisakhi?"];
+// Checked against the real dataset: each gets a grounded or partial answer, not "not found".
+const EXAMPLES = ["What is langar?", "Can a non-Sikh visit a Gurdwara?", "Can Sikhs eat meat?", "What is Vaisakhi?", "What happens at a Gurdwara?"];
 
 const ICON = {
   arrow: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
@@ -99,10 +100,11 @@ function newChat() {
 document.getElementById("new-chat").addEventListener("click", newChat);
 
 // ---- R1: source cards ----
+// Primary records are SikhNet forum posts whatever the import file was called (e.g. "qa-sample-300");
+// they're community answers, not official rulings (see DATASHEET.md), so say "forum answer".
 function sourceLabel(c) {
-  const secondary = c.source_type === "secondary";
-  const name = !c.source || c.source === "sikhnet-qa-dataset" ? "SikhNet Q&A" : c.source;
-  return `${name} · ${secondary ? "other source" : "SikhNet answer"}`;
+  if (c.source_type === "secondary") return `${c.source || "Other source"} · other source`;
+  return "SikhNet Q&A · forum answer";
 }
 function renderSources(citations, turn) {
   if (!citations?.length) return null;
@@ -165,7 +167,7 @@ function renderActions(res, question) {
 }
 
 function renderNotFound(res) {
-  const suggestions = res.follow_ups?.length ? res.follow_ups.slice(0, 3) : ["What is langar?", "What are the five Ks?"];
+  const suggestions = res.follow_ups?.length ? res.follow_ups.slice(0, 3) : ["Can a non-Sikh visit a Gurdwara?", "Can Sikhs eat meat?"];
   return h("section", { class: "notice", "aria-label": "Not in our sources" },
     h("div", { class: "notice-head" }, h("span", { html: ICON.info }), h("h2", {}, "This isn't in our sources")),
     h("p", {}, "We only answer from SikhNet's collection, so we won't guess. Try one of these, or explore a topic."),
@@ -183,6 +185,9 @@ function renderAnswer(res, turn, question) {
 
   if (res.coverage === "not_found") return h("article", { class: "turn" }, renderNotFound(res));
   return h("article", { class: "turn" },
+    res.coverage === "partial" ? h("div", { class: "partial", role: "note" },
+      h("span", { html: ICON.info }),
+      h("span", {}, "Our sources only partly cover this. Check the entries below before relying on it.")) : null,
     h("div", { class: "answer", html: markdown(res.answer, turn, altNs) }),
     renderActions(res, question),
     renderSources(res.citations, turn),
@@ -191,8 +196,8 @@ function renderAnswer(res, turn, question) {
 }
 
 // Loading: staged label + elapsed seconds, so people know it's working.
-function renderLoading() {
-  const label = h("span", {}, "Searching SikhNet's answers…");
+function renderLoading(firstLabel) {
+  const label = h("span", {}, firstLabel || "Searching SikhNet's answers…");
   const timer = h("span", { class: "elapsed" }, "0s");
   const el = h("div", { class: "loading", role: "status" },
     h("div", { class: "loading-label" }, h("span", { class: "spin", html: ICON.search }), label, timer),
@@ -203,7 +208,10 @@ function renderLoading() {
   const tick = setInterval(() => {
     const s = Math.floor((Date.now() - started) / 1000);
     timer.textContent = `${s}s`;
-    if (s >= 2) label.textContent = "Reading the sources and writing an answer…";
+    // Answers with Claude take ~10-15s; keep saying what's happening.
+    if (s >= 12) label.textContent = "Still working. Careful answers take a moment…";
+    else if (s >= 6) label.textContent = "Weighing what different members said…";
+    else if (s >= 2) label.textContent = "Reading the sources and writing an answer…";
   }, 500);
   el.stop = () => clearInterval(tick);
   return el;
@@ -218,15 +226,18 @@ function setBusy(on) {
 }
 function updateSend() { sendBtn.disabled = busy || !input.value.trim(); }
 
-async function send(question) {
+// opts.retry: called instead of showing "not in our sources" (Surprise me picks another question).
+async function send(question, opts = {}) {
   question = question.trim();
   if (!question || busy) return;
+  let retry = null;
   startChat();
   setBusy(true);
   following = true;
   const turn = ++turnCount;
-  chat.append(h("div", { class: "user-msg" }, question));
-  const pending = renderLoading();
+  const userMsg = h("div", { class: "user-msg" }, question);
+  chat.append(userMsg);
+  const pending = renderLoading(opts.loadingLabel);
   chat.append(pending);
   afterAppend();
   controller = new AbortController();
@@ -239,6 +250,12 @@ async function send(question) {
     });
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const res = await r.json();
+    if (res.coverage === "not_found" && opts.retry) {
+      userMsg.remove();
+      pending.remove();
+      retry = opts.retry;
+      return;
+    }
     pending.replaceWith(renderAnswer(res, turn, question));
     history.push({ role: "user", content: question }, { role: "assistant", content: res.answer || "" });
   } catch (e) {
@@ -253,6 +270,7 @@ async function send(question) {
     controller = null;
     setBusy(false);
     afterAppend();
+    if (retry) retry();
   }
 }
 stopBtn.addEventListener("click", () => controller?.abort());
@@ -287,12 +305,18 @@ async function loadTopics() {
   } catch (e) {}
   fillTopics();
 }
-async function surprise(category) {
+// A pick can come back "not in our sources" (e.g. a vague forum title when no hook was written);
+// quietly try another rather than show a dead end, up to SURPRISE_TRIES picks.
+const SURPRISE_TRIES = 3;
+async function surprise(category, attempt = 1) {
   if (busy) return;
   try {
     const qs = category ? `?category=${encodeURIComponent(category)}` : "";
     const res = await (await fetch(`/api/surprise${qs}`)).json();
-    if (res.question) return send(res.question);
+    if (res.question) return send(res.question, {
+      loadingLabel: attempt > 1 ? "Finding a better question for you…" : "Finding a rabbit hole…",
+      retry: attempt < SURPRISE_TRIES ? () => surprise(category, attempt + 1) : null,
+    });
   } catch (e) {}
   startChat();
   chat.append(h("section", { class: "notice", role: "status" },
@@ -345,8 +369,40 @@ setInterval(() => {
   input.placeholder = `Try “${EXAMPLES[exampleIdx]}”`;
 }, 3500);
 
+// ---- Intro: Khanda screen; a cursor move, click, tap or key fades it into the app ----
+(function intro() {
+  const el = document.getElementById("intro");
+  const force = new URLSearchParams(location.search).has("intro");
+  let seen = false;
+  try { seen = sessionStorage.getItem("introSeen") === "1"; } catch (e) {}
+  if (seen && !force) { document.body.classList.remove("intro-active"); return; }
+  el.hidden = false;
+  let armed = false, done = false, start = null;
+  setTimeout(() => { armed = true; }, 1400);  // let the Khanda draw before a stray move dismisses it
+  function enter() {
+    if (done) return;
+    done = true;
+    try { sessionStorage.setItem("introSeen", "1"); } catch (e) {}
+    el.classList.add("leaving");
+    document.body.classList.remove("intro-active");
+    setTimeout(() => {
+      el.remove();
+      if (matchMedia("(pointer: fine)").matches) input.focus();
+    }, 850);
+  }
+  el.addEventListener("click", enter);
+  document.getElementById("intro-enter").addEventListener("click", e => { e.stopPropagation(); enter(); });
+  window.addEventListener("pointermove", e => {
+    if (done || !armed || e.pointerType !== "mouse") return;
+    if (!start) { start = [e.clientX, e.clientY]; return; }
+    if (Math.hypot(e.clientX - start[0], e.clientY - start[1]) > 40) enter();
+  });
+  window.addEventListener("keydown", e => { if (!done && !["Shift", "Meta", "Control", "Alt", "Tab"].includes(e.key)) { e.preventDefault(); enter(); } }, { capture: true });
+  document.getElementById("intro-enter").focus({ preventScroll: true });
+})();
+
 fetch("/api/health").then(r => r.json()).then(hl => {
   document.getElementById("status").textContent = `Answers from SikhNet's Q&A · ${hl.records} entries`;
 }).catch(() => {});
 loadTopics();
-if (matchMedia("(pointer: fine)").matches) input.focus();  // no surprise keyboard on phones
+if (!document.body.classList.contains("intro-active") && matchMedia("(pointer: fine)").matches) input.focus();  // no surprise keyboard on phones

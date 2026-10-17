@@ -1,17 +1,20 @@
-/* Beige + light blue, built on three rules:
+/* Khalsa palette: surmai (greyish navy) and basanti (golden yellow) — the two Nishan Sahib colours
+   in the Sikh Rehat Maryada — on a warm cream ground. Built on three rules:
    1. Light comes from the sky: raised things are lit on top and cast a shadow below; inputs are inset.
    2. Grayscale first: warm neutrals do the work; one blue hue (light → deep) is used only with purpose.
    3. Double the whitespace: generous space between lines, elements and groups. */
 :root {
   color-scheme: light;
   /* warm neutrals (one beige hue, varied brightness) */
-  --bg: #f3ede2; --panel: #fffdf9; --raised: #ebe4d6; --hover: #e3dac9;
+  --bg: #f4eee0; --panel: #fffcf5; --raised: #ece4d3; --hover: #e4d9c4;
   --text: #1f2933; --body: #3d4652; --muted: #646b74;
   --border: #e2d8c6; --control: #d3c7b2; --rule: #e9e0cf;
-  /* one blue hue */
-  --blue-50: #eef6fc; --blue-100: #dcecf8; --blue-200: #c3dff4; --blue-300: #a5cff0;
-  --blue-400: #86bce6; --blue-600: #2a6ea6; --blue-700: #1f5a8a; --blue-900: #0f2c47;
-  --accent: var(--blue-700); --accent-line: rgba(31, 90, 138, .32); --accent-soft: rgba(42, 110, 166, .12);
+  /* surmai (main hue, light → deep) */
+  --blue-50: #eef1f6; --blue-100: #e2e8f1; --blue-200: #cdd7e6; --blue-300: #b0bfd5;
+  --blue-400: #8c9fbf; --blue-600: #3a5379; --blue-700: #2c4166; --blue-900: #18233a;
+  --accent: var(--blue-700); --accent-line: rgba(44, 65, 102, .32); --accent-soft: rgba(58, 83, 121, .12);
+  /* basanti (accent, used sparingly) */
+  --basanti: #e2b13c; --basanti-light: #f3d98f; --basanti-soft: #f8ecc8; --basanti-deep: #7a5810;
   /* light from above */
   --highlight: inset 0 1px 0 rgba(255, 255, 255, .85);
   --shadow-sm: 0 1px 1px rgba(80, 60, 30, .06), 0 2px 4px -1px rgba(80, 60, 30, .08);
@@ -35,22 +38,23 @@ button { cursor: pointer; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ---- Buttons: lit from above (lighter top, darker bottom edge, shadow below) ---- */
-.btn-accent { height: 44px; padding: 0 20px; border: 1px solid var(--blue-400); border-bottom-color: #6aa6d6;
-              border-radius: 12px; background: linear-gradient(180deg, var(--blue-200), var(--blue-300));
-              color: var(--blue-900); font-weight: 600; font-size: 14px;
+.btn-accent { height: 44px; padding: 0 20px; border: 1px solid #24375a; border-bottom-color: #172540;
+              border-radius: 12px; background: linear-gradient(180deg, #415b84, var(--blue-700));
+              color: #fbf6ea; font-weight: 600; font-size: 14px;
               display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-              box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), 0 1px 2px rgba(15, 44, 71, .14), 0 4px 10px -4px rgba(15, 44, 71, .25);
+              box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 1px 2px rgba(24, 35, 58, .2), 0 4px 10px -4px rgba(24, 35, 58, .4);
               transition: filter .15s, transform .1s, box-shadow .1s; }
-.btn-accent:hover { filter: brightness(1.03) saturate(1.08); }
-.btn-accent:active { transform: translateY(1px); background: var(--blue-300);
-                     box-shadow: inset 0 2px 3px rgba(15, 44, 71, .18); }
+.btn-accent:hover { filter: brightness(1.08); }
+.btn-accent svg { color: var(--basanti-light); }
+.btn-accent:active { transform: translateY(1px); background: var(--blue-700);
+                     box-shadow: inset 0 2px 4px rgba(0, 0, 0, .3); }
 .btn-accent:disabled { opacity: .55; cursor: progress; }
 /* Secondary (neutral) buttons: same light logic, no colour. */
-.btn-ghost, .topbar .btn-accent { height: 40px; padding: 0 14px; border-radius: 10px; font-size: 14px; font-weight: 500;
+.btn-ghost, .topbar .btn-accent { height: 40px; padding: 0 14px; border-radius: 10px; font-size: 14px; font-weight: 500; text-shadow: none;
              border: 1px solid var(--border); border-bottom-color: var(--control); color: var(--text);
              background: linear-gradient(180deg, var(--panel), #f8f3ea);
              box-shadow: var(--highlight), var(--shadow-sm); display: inline-flex; align-items: center; gap: 8px; }
-.topbar .btn-accent svg { color: var(--blue-600); }
+.topbar .btn-accent svg { color: var(--basanti-deep); }
 .btn-ghost:hover, .topbar .btn-accent:hover { filter: none; border-color: var(--control); background: var(--panel); }
 .btn-ghost:active, .topbar .btn-accent:active { transform: translateY(1px); background: var(--raised); box-shadow: var(--inset); }
 
@@ -68,9 +72,9 @@ select:focus, .field input:focus { outline: none; border-color: var(--blue-400);
           box-shadow: 0 1px 0 rgba(255, 255, 255, .6), 0 6px 16px -14px rgba(80, 60, 30, .35);
           position: sticky; top: 0; z-index: 2; }
 .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.logo { width: 32px; height: 32px; border-radius: 9px; color: var(--blue-900);
-        background: linear-gradient(180deg, var(--blue-200), var(--blue-300)); border: 1px solid var(--blue-400);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), 0 2px 4px -1px rgba(15, 44, 71, .25);
+.logo { width: 34px; height: 34px; border-radius: 10px; color: var(--basanti);
+        background: linear-gradient(180deg, #2f4569, var(--blue-900)); border: 1px solid #101a2d;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .16), 0 2px 4px -1px rgba(24, 35, 58, .4);
         display: flex; align-items: center; justify-content: center; flex: none; }
 .name { font-weight: 600; font-size: 16px; letter-spacing: -.01em; }
 .pill { font: 500 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--border); border-radius: 999px;
@@ -94,7 +98,7 @@ main { flex: 1; width: 100%; max-width: 720px; margin: 0 auto; padding: 56px 24p
 .answer p:last-child { margin-bottom: 0; }
 .answer ul, .answer ol { margin: 0 0 18px; padding-left: 1.4em; }
 .answer li { margin-bottom: 6px; }
-.answer li::marker { color: var(--blue-600); }
+.answer li::marker { color: var(--basanti); }
 .cite { font: 600 11px/1 var(--mono); border: 1px solid var(--blue-300); background: var(--blue-100);
         color: var(--blue-700); border-radius: 6px; padding: 3px 6px; vertical-align: 3px; margin: 0 2px;
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7); transition: background .15s; }
@@ -161,7 +165,8 @@ section.block { display: flex; flex-direction: column; gap: 16px; }
 /* ---- Home ---- */
 .home { display: flex; flex-direction: column; gap: 28px; margin-top: 4vh; }
 .home h1 { margin: 0; font-family: var(--serif); font-size: 56px; font-weight: 500; line-height: 1.05; letter-spacing: -.02em; }
-.home h1 em { color: var(--blue-700); }
+.home h1 em { color: var(--blue-700); text-decoration: underline; text-decoration-color: var(--basanti);
+              text-decoration-thickness: 4px; text-underline-offset: 8px; text-decoration-skip-ink: none; }
 .lede { margin: -12px 0 12px; color: var(--muted); font-size: 17px; max-width: 34em; }
 .surprise-card { border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 14px; margin: 0;
                  box-shadow: var(--highlight), var(--shadow-md); }
@@ -173,6 +178,11 @@ section.block { display: flex; flex-direction: column; gap: 16px; }
 .surprise-card .btn-accent { height: 48px; font-size: 15px; margin-top: 6px; }
 .home .eyebrow { margin-top: 12px; }
 
+/* Partial coverage (R1 honesty): quiet basanti note above the answer. */
+.partial { display: flex; align-items: flex-start; gap: 10px; padding: 12px 16px; border-radius: 12px;
+           background: var(--basanti-soft); border: 1px solid #ecd48f; color: var(--basanti-deep); font-size: 14px; line-height: 1.5; }
+.partial svg { flex: none; margin-top: 1px; }
+
 /* ---- Loading, not found, error ---- */
 .loading { display: flex; flex-direction: column; gap: 12px; border-radius: 14px; padding: 20px; margin-top: -16px; }
 .loading-label { font: 400 12px/1.5 var(--mono); color: var(--muted); display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
@@ -180,7 +190,7 @@ section.block { display: flex; flex-direction: column; gap: 16px; }
 .bar { height: 10px; border-radius: 5px; background: var(--raised); box-shadow: var(--inset); animation: pulse 1.2s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: .45; } }
 .notice { border-radius: 14px; padding: 22px 24px; display: flex; flex-direction: column; gap: 16px; }
-.notice-head { display: flex; align-items: center; gap: 10px; color: var(--blue-600); }
+.notice-head { display: flex; align-items: center; gap: 10px; color: var(--basanti-deep); }
 .notice h2 { margin: 0; font-family: var(--serif); font-size: 20px; font-weight: 500; color: var(--text); }
 .notice p { margin: 0; font-size: 15px; color: var(--body); }
 .notice .option { box-shadow: var(--highlight), var(--shadow-sm); }
@@ -201,14 +211,14 @@ textarea:focus-visible { outline: none; }  /* the composer box shows focus */
 kbd { font: 500 10px/1 var(--mono); padding: 3px 6px; border: 1px solid var(--control); border-bottom-width: 2px;
       border-radius: 5px; color: var(--body); background: linear-gradient(180deg, var(--panel), var(--raised)); }
 .send { width: 40px; height: 40px; flex: none; margin-left: auto; border-radius: 12px;
-        border: 1px solid var(--blue-400); border-bottom-color: #6aa6d6; color: var(--blue-900);
-        background: linear-gradient(180deg, var(--blue-200), var(--blue-300));
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), 0 2px 6px -2px rgba(15, 44, 71, .35);
+        border: 1px solid #24375a; border-bottom-color: #172540; color: var(--basanti-light);
+        background: linear-gradient(180deg, #415b84, var(--blue-700));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2), 0 2px 6px -2px rgba(24, 35, 58, .5);
         display: flex; align-items: center; justify-content: center; transition: filter .15s, transform .1s; }
-.send:hover { filter: brightness(1.03) saturate(1.08); }
-.send:active { transform: translateY(1px); box-shadow: inset 0 2px 3px rgba(15, 44, 71, .2); }
+.send:hover { filter: brightness(1.08); }
+.send:active { transform: translateY(1px); box-shadow: inset 0 2px 4px rgba(0, 0, 0, .3); }
 .send:disabled { background: var(--raised); border-color: var(--border); color: var(--muted); box-shadow: var(--inset); cursor: default; filter: none; }
-.send.stop { background: linear-gradient(180deg, #34404d, var(--text)); border-color: var(--text); color: var(--panel); }
+.send.stop { background: linear-gradient(180deg, var(--basanti-light), var(--basanti)); border-color: #c99a2c; color: var(--blue-900); }
 .send[hidden] { display: none; }
 .fineprint { margin-top: 10px; font: 400 11px/1.5 var(--mono); color: var(--muted); text-align: center; }
 
@@ -231,7 +241,43 @@ kbd { font: 500 10px/1 var(--mono); padding: 3px 6px; border: 1px solid var(--co
   * { transition: none !important; }
 }
 
+/* ---- Intro: Khanda on surmai, then fade into the app ---- */
+.intro { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; padding: 24px;
+         color: #f6efdc; cursor: pointer;
+         background: radial-gradient(120% 80% at 50% 0%, #2b3d5f 0%, #1b2742 45%, #111a2e 100%);
+         transition: opacity .8s ease, visibility 0s linear .8s; }
+.intro[hidden] { display: none; }
+.intro-inner { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px; max-width: 520px;
+               transition: transform .8s cubic-bezier(.2, .7, .2, 1), filter .8s ease; }
+.intro-khanda { width: min(38vw, 170px); height: auto; fill: var(--basanti); color: var(--basanti); margin-bottom: 18px;
+                filter: drop-shadow(0 1px 0 rgba(255, 238, 190, .35)) drop-shadow(0 14px 22px rgba(0, 0, 0, .45));
+                animation: khanda-in 1.4s cubic-bezier(.2, .7, .2, 1) both; }
+.intro-greet { margin: 0; font: 500 22px/1.4 "Noto Sans Gurmukhi", var(--sans); color: var(--basanti-light);
+               animation: fade-up .9s .7s both; }
+.intro-title { margin: 0; font: 500 44px/1.1 var(--serif); letter-spacing: -.01em; animation: fade-up .9s .85s both; }
+.intro-sub { margin: 0; font-size: 16px; color: #c9d1e0; animation: fade-up .9s 1s both; }
+.intro-enter { margin-top: 26px; display: inline-flex; align-items: center; gap: 10px; padding: 12px 22px; border-radius: 999px;
+               border: 1px solid rgba(243, 217, 143, .35); background: rgba(255, 255, 255, .04); color: #f6efdc;
+               font: 500 12px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase;
+               box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08); animation: fade-up .9s 1.3s both; }
+.intro-enter:hover { border-color: var(--basanti); background: rgba(226, 177, 60, .1); }
+.intro-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--basanti); animation: breathe 2s ease-in-out infinite; }
+.intro.leaving { opacity: 0; visibility: hidden; }
+.intro.leaving .intro-inner { transform: scale(1.08); filter: blur(3px); }
+@keyframes khanda-in { from { opacity: 0; transform: translateY(14px) scale(.92); } }
+@keyframes fade-up { from { opacity: 0; transform: translateY(10px); } }
+@keyframes breathe { 50% { opacity: .35; transform: scale(.8); } }
+/* App fades in underneath as the intro leaves. */
+body > .topbar, body > main, body > .composer { transition: opacity .9s ease .15s; }
+body.intro-active > .topbar, body.intro-active > main, body.intro-active > .composer { opacity: 0; }
+body.intro-active { overflow: hidden; }
+@media (prefers-reduced-motion: reduce) {
+  .intro-khanda, .intro-greet, .intro-title, .intro-sub, .intro-enter, .intro-dot { animation: none; }
+  .intro.leaving .intro-inner { transform: none; filter: none; }
+}
+
 @media (max-width: 640px) {
+  .intro-title { font-size: 34px; }
   .topbar { padding: 12px 16px; }
   .pill, .surprise-bar label, .btn-ghost span { display: none; }
   .top-actions, .top-actions .surprise-bar { width: 100%; flex-wrap: nowrap; }

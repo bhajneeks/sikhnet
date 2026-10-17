@@ -1,12 +1,14 @@
 # Manveer — UI / UX
-updated: 2026-10-16 16:00
+updated: 2026-10-16 17:10
 branch: manveer/ui
 
 ## Now
-Chat UI v2 (beige + light blue) on manveer/ui; PR into main not opened yet.
+Sikh-themed UI (Khanda intro, surmai + basanti) tested on the real dataset with llm mode; merging to main.
 Design: https://claude.ai/artifact/RDNoyCDZTpw4kvmi4fVPBg (private until shared)
 
 ## Done
+- Khanda intro screen (public-domain Wikimedia Khanda) that fades into the app; surmai + basanti palette (Nishan Sahib colours per Rehat Maryada)
+- Real-data fixes: partial-coverage note, longer loading stages, "SikhNet Q&A · forum answer" labels, Surprise me retries picks that come back not_found, starters swapped for ones the dataset answers
 - Chat box v2: composer with Enter/Shift+Enter hint, rotating example questions, Stop (and Esc), "/" to focus; Copy + Ask again on each answer; scroll-to-latest button (auto-follow only when at bottom); staged loading text with timer; New chat; topic labels + free-text subject for Surprise me (decision 004)
 - UI polish from "7 Rules for Gorgeous UI": light from above (raised buttons/cards, inset inputs), neutrals + one blue hue, doubled whitespace
 - Light theme: beige + light blue, Newsreader serif for headings and answers (replaced black + orange)
@@ -19,7 +21,8 @@ Design: https://claude.ai/artifact/RDNoyCDZTpw4kvmi4fVPBg (private until shared)
 - Accessibility pass (design:accessibility-review)
 
 ## Blocked on / needs from others
-- @Avneet: /api/ask citations should include source + source_type (contract § 3); UI labels primary vs other sources from them
+- @Bhajneek: surprise.py falls back to raw forum titles that /api/ask can't answer (UI retries for now); topic matching is loose (music → Vaisakhi date)
+- @Jaspreet: confirm starter questions and "forum answer" wording; any official SikhNet logo/colours?
 
 ## Files I'm touching
 - frontend/
