@@ -17,6 +17,7 @@ import math
 import os
 import secrets
 import sqlite3
+import tempfile
 import threading
 import time
 from pathlib import Path
@@ -62,17 +63,34 @@ def _path() -> str:
     return os.environ.get("SIKHNET_DB", "data/community/community.db")
 
 
+# Serverless hosts (Vercel) mount the code read-only; only /tmp is writable.
+# /tmp is per-instance and wiped on cold start, so posts there don't last —
+# set SIKHNET_DB to a persistent volume (Railway) for real storage.
+_FALLBACK = os.path.join(tempfile.gettempdir(), "sikhnet", "community.db")
+
+
+def _open(p: str) -> sqlite3.Connection:
+    if p != ":memory:":
+        Path(p).parent.mkdir(parents=True, exist_ok=True)
+    c = sqlite3.connect(p, check_same_thread=False, isolation_level=None)
+    if p != ":memory:":
+        c.execute("PRAGMA journal_mode=WAL")  # fails here too if the dir is read-only
+    return c
+
+
 def conn() -> sqlite3.Connection:
     global _conn
     with _lock:
         if _conn is None:
             p = _path()
-            if p != ":memory:":
-                Path(p).parent.mkdir(parents=True, exist_ok=True)
-            _conn = sqlite3.connect(p, check_same_thread=False, isolation_level=None)
+            try:
+                _conn = _open(p)
+            except (OSError, sqlite3.OperationalError) as e:
+                if p == ":memory:":
+                    raise
+                print(f"[store] {p} not writable ({e}); using {_FALLBACK} (not persistent)")
+                _conn = _open(_FALLBACK)
             _conn.row_factory = sqlite3.Row
-            if p != ":memory:":
-                _conn.execute("PRAGMA journal_mode=WAL")
             _conn.executescript(SCHEMA)
         return _conn
 
