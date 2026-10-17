@@ -227,6 +227,40 @@ function setBusy(on) {
 function updateSend() { sendBtn.disabled = busy || !input.value.trim(); }
 
 // opts.retry: called instead of showing "not in our sources" (Surprise me picks another question).
+// ---- streaming transport ----
+// POST /api/ask/stream is Server-Sent Events (docs/ARCHITECTURE.md § 3,
+// decision 005): citations -> delta* -> meta -> done, or error. citations
+// arrive before the model has written a word, so the source cards can render
+// while the answer is still coming in.
+async function streamAsk(body, signal, on) {
+  const r = await fetch("/api/ask/stream", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+    signal,
+  });
+  if (!r.ok || !r.body) throw new Error(`HTTP ${r.status}`);
+  const reader = r.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    let i;
+    while ((i = buf.indexOf("\n\n")) >= 0) {
+      const frame = buf.slice(0, i);
+      buf = buf.slice(i + 2);
+      let event = "message", data = "";
+      for (const line of frame.split("\n")) {
+        if (line.startsWith("event: ")) event = line.slice(7);
+        else if (line.startsWith("data: ")) data += line.slice(6);
+      }
+      if (data) on(event, JSON.parse(data));
+    }
+  }
+}
+
 async function send(question, opts = {}) {
   question = question.trim();
   if (!question || busy) return;
@@ -241,31 +275,90 @@ async function send(question, opts = {}) {
   chat.append(pending);
   afterAppend();
   controller = new AbortController();
-  try {
-    const r = await fetch("/api/ask", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ question, history: history.slice(-10) }),
-      signal: controller.signal,
+
+  // Built up as events arrive; shaped exactly like an /api/ask response so the
+  // existing renderers can finish the turn.
+  const res = { answer: "", citations: [], perspectives: [], follow_ups: [], coverage: null, mode: null };
+  let article = null, answerEl = null, sourcesEl = null, queued = false;
+
+  const paint = () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => {
+      queued = false;
+      if (answerEl) answerEl.innerHTML = markdown(res.answer, turn, new Set());
+      afterAppend();
     });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const res = await r.json();
+  };
+
+  const openTurn = () => {
+    if (article) return;
+    answerEl = h("div", { class: "answer streaming" });
+    article = h("article", { class: "turn" }, answerEl);
+    pending.stop();
+    pending.replaceWith(article);
+  };
+
+  try {
+    await streamAsk({ question, history: history.slice(-10) }, controller.signal, (event, data) => {
+      if (event === "citations") {
+        res.citations = data.citations || [];
+        res.mode = data.mode;
+        // Sources are known before the first token — show them immediately.
+        if (res.citations.length) {
+          openTurn();
+          sourcesEl = renderSources(res.citations, turn);
+          if (sourcesEl) article.append(sourcesEl);
+        }
+      } else if (event === "delta") {
+        openTurn();
+        res.answer += data.text;
+        paint();
+      } else if (event === "meta") {
+        Object.assign(res, {
+          coverage: data.coverage,
+          perspectives: data.perspectives || [],
+          follow_ups: data.follow_ups || [],
+          // meta.citations is authoritative: empty on not_found, so the cards
+          // rendered from the earlier event have to go.
+          citations: data.citations || [],
+          mode: data.mode ?? res.mode,
+        });
+      } else if (event === "error") {
+        throw new Error(data.message || "stream failed");
+      }
+    });
+
     if (res.coverage === "not_found" && opts.retry) {
       userMsg.remove();
-      pending.remove();
+      (article || pending).remove();
       retry = opts.retry;
       return;
     }
-    pending.replaceWith(renderAnswer(res, turn, question));
+    // Re-render the finished turn through the normal path, so a streamed answer
+    // and a non-streamed one are identical once complete.
+    const finished = renderAnswer(res, turn, question);
+    if (article) article.replaceWith(finished); else pending.replaceWith(finished);
+    article = finished;
     history.push({ role: "user", content: question }, { role: "assistant", content: res.answer || "" });
   } catch (e) {
     const stopped = e.name === "AbortError";
-    pending.replaceWith(h("section", { class: "notice", role: stopped ? "status" : "alert" },
+    // Keep whatever already streamed; just say it was cut short.
+    const notice = h("section", { class: "notice", role: stopped ? "status" : "alert" },
       h("div", { class: "notice-head" }, h("span", { html: ICON.info }),
         h("h2", {}, stopped ? "Stopped" : "Couldn't reach the server")),
       h("p", {}, stopped ? "You stopped this answer." : "Check your connection and try again."),
-      h("div", { class: "option-list" }, optionButton(question))));
+      h("div", { class: "option-list" }, optionButton(question)));
+    if (article && res.answer) {
+      answerEl.classList.remove("streaming");
+      article.append(notice);
+    } else if (article) {
+      article.replaceWith(notice);
+    } else {
+      pending.replaceWith(notice);
+    }
   } finally {
+    if (answerEl) answerEl.classList.remove("streaming");
     pending.stop();
     controller = null;
     setBusy(false);
