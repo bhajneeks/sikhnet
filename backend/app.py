@@ -62,7 +62,7 @@ def _citations(hits: list[dict]) -> list[dict]:
 
 def _term_overlap(question: str, hit: dict) -> float:
     """Fraction of the question's content words the entry actually contains."""
-    terms = set(retrieval.tokenize(question))
+    terms = set(retrieval.query_terms(question))
     if not terms:
         return 0.0
     body = (hit.get("extra") or {}).get("question_body") or ""

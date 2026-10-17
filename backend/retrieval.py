@@ -5,6 +5,7 @@ v1 is a small in-memory BM25 — swap internals freely, keep the signature.
 """
 from __future__ import annotations
 
+import difflib
 import json
 import math
 import os
@@ -106,13 +107,48 @@ def tokenize(text: str) -> list[str]:
     return [t for t in re.findall(r"\w+", text.lower()) if t not in STOPWORDS]
 
 
+# Typo tolerance, query side only. Romanised Punjabi has no fixed spelling and
+# users misspell it ("langer", "kirten", "jupji"); an unseen word otherwise
+# trips the out-of-scope gate (unseen_terms) and the answer is not_found. A
+# word the corpus has never used is snapped to its closest corpus word, but
+# only with the same first letter (keeps "iphone" from becoming "phone"),
+# preferring the longest shared prefix ("langer" → "langar", not "longer").
+# Words the corpus knows, and off-topic words with no close match ("brazil",
+# "javascript"), pass through unchanged.
+TYPO_CUTOFF = 0.8       # difflib similarity a correction must reach
+TYPO_MIN_LEN = 4        # shorter words are too ambiguous to correct
+
+
+@lru_cache(maxsize=1)
+def _vocabulary() -> list[str]:
+    *_, df = _index()
+    return [w for w, c in df.items() if c >= 2 and len(w) >= TYPO_MIN_LEN and not w.isdigit()]
+
+
+@lru_cache(maxsize=4096)
+def correct(term: str) -> str:
+    *_, df = _index()
+    if term in df or len(term) < TYPO_MIN_LEN or term.isdigit():
+        return term
+    matches = [m for m in difflib.get_close_matches(term, _vocabulary(), n=5, cutoff=TYPO_CUTOFF)
+               if m[0] == term[0]]
+    if not matches:
+        return term
+    return max(matches, key=lambda m: (len(os.path.commonprefix([term, m])), df[m]))
+
+
+def query_terms(query: str) -> list[str]:
+    """tokenize() for a user's query, with misspellings corrected."""
+    return [correct(t) for t in tokenize(query)]
+
+
 def expand_query(query: str) -> list[str]:
     """Query terms plus bridged vocabulary, decided against the corpus itself.
 
     Added terms are appended after the user's own, deduplicated, so they add
     recall without outweighing what was actually typed.
     """
-    terms = tokenize(query)
+    terms = query_terms(query)
     *_, df = _index()
     lowered = " ".join(re.findall(r"\w+", query.lower()))
 
@@ -177,7 +213,7 @@ def unseen_terms(query: str) -> list[str]:
     in-scope question we measured used only words the corpus knows.
     """
     *_, df = _index()
-    return [t for t in dict.fromkeys(tokenize(query)) if t not in df]
+    return [t for t in dict.fromkeys(query_terms(query)) if t not in df]
 
 
 def thread_answers(thread_id: str, exclude_ids: set[str] | None = None, limit: int = 3) -> list[dict]:
